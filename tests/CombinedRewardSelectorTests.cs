@@ -58,10 +58,50 @@ public sealed class CombinedRewardSelectorTests
     [Fact]
     public void ExplicitItemIdExclusionIsCaseInsensitive()
     {
-        var exclusions = new SpawnExclusionList(new[] { "Shop.SpecialItem" }, new[] { "weapon" });
-        Assert.True(exclusions.IsExcluded("shop.specialitem"));
-        Assert.True(exclusions.IsExcluded("another.item", new[] { "WEAPON" }));
-        Assert.False(exclusions.IsExcluded("ordinary.utility", new[] { "utility" }));
+        var exclusions = new SpawnExclusionList(
+            new[] { new SpawnExclusionEntry(RewardCategory.UtilityItem, "Shop.SpecialItem", "Balance") },
+            new[] { "weapon" });
+        Assert.True(exclusions.IsExcluded(RewardCategory.UtilityItem, "shop.specialitem"));
+        Assert.True(exclusions.IsExcluded(RewardCategory.Monster, "another.id", new[] { "WEAPON" }));
+        Assert.False(exclusions.IsExcluded(RewardCategory.Valuable, "ordinary.valuable", new[] { "utility" }));
+        Assert.False(exclusions.IsExcluded(RewardCategory.Valuable, "Shop.SpecialItem"));
+    }
+
+    [Theory]
+    [InlineData(RewardCategory.Monster, "monster.blocked")]
+    [InlineData(RewardCategory.UtilityItem, "shop.blocked")]
+    [InlineData(RewardCategory.Valuable, "valuable.blocked")]
+    public void CategorySpecificExclusionsRemoveOnlyMatchingSpawnEntry(RewardCategory category, string id)
+    {
+        var exclusions = new SpawnExclusionList(new[]
+        {
+            new SpawnExclusionEntry(category, id, "Balance or stability")
+        });
+
+        Assert.True(exclusions.IsExcluded(category, id));
+        var otherCategory = category == RewardCategory.Monster
+            ? RewardCategory.Valuable
+            : RewardCategory.Monster;
+        Assert.False(exclusions.IsExcluded(otherCategory, id));
+    }
+
+    [Fact]
+    public void CustomExclusionListIsAppliedDuringSelection()
+    {
+        var candidates = new[]
+        {
+            Candidate(RewardCategory.Monster, "monster.blocked"),
+            Candidate(RewardCategory.Monster, "monster.allowed")
+        };
+        var exclusions = new SpawnExclusionList(new[]
+        {
+            new SpawnExclusionEntry(RewardCategory.Monster, "monster.blocked", "Too disruptive")
+        });
+
+        var selected = CombinedRewardSelector.Select(candidates, RewardCategoryWeights.Default,
+            new FixedRandom(0.1, 0), exclusions);
+
+        Assert.Equal("monster.allowed", selected.Id);
     }
 
     [Fact]

@@ -4,23 +4,23 @@ using System.Linq;
 
 namespace SpectrumRepoMod.Rewards;
 
-/// <summary>
-/// Selects one eligible category, then one candidate within that category.
-/// The caller must provide a current host-side catalogue snapshot.
-/// </summary>
 public static class CombinedRewardSelector
 {
     public static RewardCandidate<T> Select<T>(
         IEnumerable<RewardCandidate<T>> source,
         RewardCategoryWeights weights,
-        Random random)
+        Random random,
+        SpawnExclusionList? exclusions = null)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (weights == null) throw new ArgumentNullException(nameof(weights));
         if (random == null) throw new ArgumentNullException(nameof(random));
+        exclusions ??= SpawnExclusionList.Default;
 
         var eligible = source
-            .Where(candidate => candidate != null && candidate.IsEligible)
+            .Where(candidate => candidate != null &&
+                candidate.IsEligible &&
+                !exclusions.IsExcluded(candidate.Category, candidate.Id, candidate.Tags))
             .GroupBy(candidate => candidate.Category)
             .ToDictionary(group => group.Key, group => group.ToArray());
 
@@ -43,7 +43,6 @@ public static class CombinedRewardSelector
         var totalWeight = available.Sum(entry => entry.Weight);
         var roll = random.NextDouble() * totalWeight;
         var selectedCategory = available[available.Length - 1];
-
         foreach (var entry in available)
         {
             if (roll < entry.Weight)
@@ -51,11 +50,9 @@ public static class CombinedRewardSelector
                 selectedCategory = entry;
                 break;
             }
-
             roll -= entry.Weight;
         }
 
-        var selectedIndex = random.Next(selectedCategory.Candidates.Length);
-        return selectedCategory.Candidates[selectedIndex];
+        return selectedCategory.Candidates[random.Next(selectedCategory.Candidates.Length)];
     }
 }

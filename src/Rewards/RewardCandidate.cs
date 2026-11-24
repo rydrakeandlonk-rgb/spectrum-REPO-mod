@@ -33,6 +33,5 @@ public sealed class RewardCandidate<T>
     public bool IsEligible =>
         (Category != RewardCategory.UtilityItem || ShopItemClassification == ShopItemClassification.Utility) &&
         ShopItemClassification != ShopItemClassification.Weapon &&
-        ShopItemClassification != ShopItemClassification.Excluded &&
-        !SpawnExclusionList.Default.IsExcluded(Id, Tags);
+        ShopItemClassification != ShopItemClassification.Excluded;
 }
