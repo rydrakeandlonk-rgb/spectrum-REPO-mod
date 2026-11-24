@@ -7,7 +7,7 @@ namespace SpectrumRepoMod;
 [BepInDependency("Zehs.REPOLib", BepInDependency.DependencyFlags.HardDependency)]
 public sealed class Plugin : BaseUnityPlugin
 {
-    public const string PluginGuid = "com.spectrum.ropemod";
+    public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
     public const string PluginVersion = "0.1.0";
 
