@@ -17,7 +17,7 @@ public sealed class Plugin : BaseUnityPlugin
     public const string PluginVersion = "0.1.0";
 
     internal static ManualLogSource Log { get; private set; } = null!;
-    internal static SpawnCatalogSnapshot<RepoSpawnTarget>? Catalog { get; private set; }
+    internal static SpawnCatalogSnapshot<RepoSpawnTarget>? Catalog { get; set; }
     internal static SpawnPolicy SpawnPolicy { get; set; } = SpawnPolicy.Default;
     internal static RepoSpawnExecutor SpawnExecutor { get; } = new();
     private RepoGatewayClient? _gateway;
