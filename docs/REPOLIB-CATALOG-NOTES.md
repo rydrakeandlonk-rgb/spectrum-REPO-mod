@@ -1,29 +1,28 @@
 # REPOLib catalogue validation notes
 
-The R.E.P.O. plugin uses REPOLib as its supported catalogue and network-spawn boundary.
+The R.E.P.O. plugin reads the live REPOLib registries and builds a catalogue snapshot after the game run is ready.
 
-## Verified public API surface
+## Registry sources
 
-- `REPOLib.Modules.Enemies.AllEnemies` exposes the current game's enemy setups.
-- `REPOLib.Modules.Items.AllItems` exposes the current `StatsManager` item catalogue.
-- `REPOLib.Modules.Valuables.AllValuables` exposes the active run's combined valuable presets.
-- `Items.SpawnItem` and `Valuables.SpawnValuable` enforce Master Client / singleplayer execution.
-- `Enemies.SpawnEnemy` performs network-prefab spawning; Spectrum must still enforce its own host-authority check before calling it.
-- REPOLib also exposes `NetworkedEvent`, but its event code is dynamically allocated from each client's locally registered event list. Do not assume that registration order or event-code assignment is stable across different mod profiles. Validate the actual transport and registration behaviour before depending on it.
+- REPOLib.Modules.Enemies.AllEnemies exposes the active enemy catalogue.
+- REPOLib.Modules.Items.AllItems exposes registered shop/game items.
+- REPOLib.Modules.Valuables.AllValuables exposes valuable presets.
 
-## Catalogue constraints
+## Current unrestricted test mode
 
-`Items.AllItems` is a game item catalogue, not proof that every returned entry is a shop-available utility item. The adapter must classify each shop entry before it can enter the utility pool. Unknown entries fail closed. The selection core accepts only entries explicitly classified as utility items; entries explicitly excluded or not yet classified are not selected.
+Every valid entry from Items.AllItems is currently added to the utility-item catalogue. The previous item-type allow-list, unknown-type rejection, weapon classification rejection and global weapon tag restriction have been removed for this test.
 
-`Valuables.AllValuables` depends on an active run (`RunManager.instance`). Catalogue refresh must therefore happen after the run is available and be invalidated when the run/level changes.
+The only item exclusion mechanism is src/Rewards/SpawnWeaponsBlocker.cs. Its exact catalogue-ID list is intentionally empty. When exclusions are added later, use confirmed stable IDs from the live catalogue, not display names or broad item-type tags.
 
-`Enemies.AllEnemies` depends on `EnemyDirector.instance`; an empty list before game initialization is not a permanent empty catalogue.
+Category enable/weight settings remain remotely configurable. They determine whether the monster, utility-item or valuable category can be selected; they do not add item exclusions.
 
-## Remaining runtime verification
+## Runtime validation still required
 
-- Confirm the installed R.E.P.O. version and REPOLib 4.5.1 API compatibility against the user's local managed assemblies.
-- Inspect actual item metadata/components to establish a reliable utility classification for the complete shop catalogue.
-- Verify spawn placement and host/client forwarding in a private multiplayer session.
-- Verify that the selected catalogue snapshot is consistent for the active run and is refreshed after level transitions.
+- Verify the full item catalogue count against the live game and installed mod profile.
+- Test representative ordinary shop items through the Control Center utility-item spawn action.
+- Record any items that fail to spawn, with their exact catalogue ID and failure details.
+- Only after ordinary items are confirmed working should individual exclusions be added to SpawnWeaponsBlocker.cs.
+- Verify spawn placement and host authority in a private multiplayer session.
+- Refresh the catalogue after run/level transitions.
 
-No game assemblies or local player files are committed to this repository.
+Do not guess item IDs or populate the blocker from display names. Keep all actual exclusion IDs in the one blocker file.
