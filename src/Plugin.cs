@@ -37,7 +37,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            Catalog = RepoCatalogBuilder.Build();
+            Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
             Log.LogInfo(
                 $"R.E.P.O. catalogue ready: {Catalog.TotalCount} entries, " +
                 $"{Catalog.AllowedCount} eligible, {Catalog.ExcludedCount} excluded.");

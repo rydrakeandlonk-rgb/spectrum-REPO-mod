@@ -21,7 +21,7 @@ public static class RepoCatalogBuilder
         "playerupgrade", "healthpack", "powercrystals", "cart", "pocketcart"
     };
 
-    public static SpawnCatalogSnapshot<RepoSpawnTarget> Build()
+    public static SpawnCatalogSnapshot<RepoSpawnTarget> Build(SpawnPolicy? policy = null)
     {
         var candidates = new List<RewardCandidate<RepoSpawnTarget>>();
 
@@ -58,7 +58,7 @@ public static class RepoCatalogBuilder
                 ShopItemClassification.Valuable));
         }
 
-        return SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates, SpawnExclusionList.Default);
+        return SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates, policy ?? SpawnPolicy.Default);
     }
 
     private static ShopItemClassification ClassifyShopItem(Item item)

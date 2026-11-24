@@ -214,6 +214,25 @@ public sealed class CombinedRewardSelectorTests
     }
 
     [Fact]
+    public void CatalogueSnapshotCanReflectCategoryPolicy()
+    {
+        var policy = new SpawnPolicy(
+            monstersEnabled: true, monsterWeight: 1d,
+            utilityItemsEnabled: false, utilityItemWeight: 1d,
+            valuablesEnabled: true, valuableWeight: 1d);
+        var snapshot = SpawnCatalogSnapshot<string>.Build(new[]
+        {
+            Candidate(RewardCategory.Monster, "monster-a"),
+            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
+            Candidate(RewardCategory.Valuable, "valuable-a")
+        }, policy);
+
+        Assert.Equal(2, snapshot.AllowedCount);
+        Assert.Equal("This reward category is disabled in Control Center",
+            snapshot.Rows.Single(row => row.Candidate.Category == RewardCategory.UtilityItem).ExclusionReason);
+    }
+
+    [Fact]
     public void CatalogueSnapshotSortsRowsDeterministically()
     {
         var snapshot = SpawnCatalogSnapshot<string>.Build(new[]

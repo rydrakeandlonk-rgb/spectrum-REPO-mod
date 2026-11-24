@@ -4,7 +4,6 @@ using System.Linq;
 
 namespace SpectrumRepoMod.Rewards;
 
-/// <summary>A catalogue row suitable for the Control Center manager.</summary>
 public sealed class SpawnCatalogRow<T>
 {
     public RewardCandidate<T> Candidate { get; }
@@ -19,10 +18,6 @@ public sealed class SpawnCatalogRow<T>
     }
 }
 
-/// <summary>
-/// Immutable, deterministic view of the current game's registered spawn catalogue.
-/// It never writes to persistent storage; callers can rebuild it when registries change.
-/// </summary>
 public sealed class SpawnCatalogSnapshot<T>
 {
     public IReadOnlyList<SpawnCatalogRow<T>> Rows { get; }
@@ -41,9 +36,44 @@ public sealed class SpawnCatalogSnapshot<T>
         IEnumerable<RewardCandidate<T>> candidates,
         SpawnExclusionList? exclusions = null)
     {
-        if (candidates == null) throw new ArgumentNullException(nameof(candidates));
         exclusions ??= SpawnExclusionList.Default;
+        return BuildInternal(candidates, candidate =>
+        {
+            var allowed = SpawnSafetyGuard.TryValidate(candidate, exclusions, out var reason);
+            return (allowed, reason);
+        });
+    }
 
+    public static SpawnCatalogSnapshot<T> Build(
+        IEnumerable<RewardCandidate<T>> candidates,
+        SpawnPolicy policy)
+    {
+        if (policy == null) throw new ArgumentNullException(nameof(policy));
+        return BuildInternal(candidates, candidate =>
+        {
+            var allowed = policy.TryValidateSpawn(candidate, out var reason);
+            return (allowed, reason);
+        });
+    }
+
+    public bool CanSpawn(RewardCandidate<T>? candidate, SpawnExclusionList? exclusions, out string reason) =>
+        SpawnSafetyGuard.TryValidate(candidate, exclusions, out reason);
+
+    public bool CanSpawn(RewardCandidate<T>? candidate, SpawnPolicy policy, out string reason)
+    {
+        if (policy == null)
+        {
+            reason = "Missing spawn policy";
+            return false;
+        }
+        return policy.TryValidateSpawn(candidate, out reason);
+    }
+
+    private static SpawnCatalogSnapshot<T> BuildInternal(
+        IEnumerable<RewardCandidate<T>> candidates,
+        Func<RewardCandidate<T>, (bool Allowed, string Reason)> validate)
+    {
+        if (candidates == null) throw new ArgumentNullException(nameof(candidates));
         var ordered = candidates
             .Where(candidate => candidate != null)
             .OrderBy(candidate => candidate.Category)
@@ -59,13 +89,10 @@ public sealed class SpawnCatalogSnapshot<T>
                 throw new InvalidOperationException("Duplicate catalogue ID in category " +
                     candidate.Category + ": " + candidate.Id);
 
-            var allowed = SpawnSafetyGuard.TryValidate(candidate, exclusions, out var reason);
-            rows.Add(new SpawnCatalogRow<T>(candidate, allowed, reason));
+            var validation = validate(candidate);
+            rows.Add(new SpawnCatalogRow<T>(candidate, validation.Allowed, validation.Reason));
         }
 
         return new SpawnCatalogSnapshot<T>(rows);
     }
-
-    public bool CanSpawn(RewardCandidate<T>? candidate, SpawnExclusionList? exclusions, out string reason) =>
-        SpawnSafetyGuard.TryValidate(candidate, exclusions, out reason);
 }
