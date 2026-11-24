@@ -16,7 +16,7 @@ on:
         description: "Existing Nexus Mods file ID for mod 400 (required only when publishing)"
         required: false
         type: string
-        default: ""
+        default: "8454900"
 
 permissions:
   contents: read
