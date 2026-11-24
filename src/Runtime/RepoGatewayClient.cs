@@ -133,6 +133,14 @@ public sealed class RepoGatewayClient
                     Plugin.Log.LogInfo("Spectrum R.E.P.O. session registered with the gateway.");
                 });
             }
+            else if (envelope.type == "repo.config.update")
+            {
+                _mainThreadActions.Enqueue(() =>
+                {
+                    ApplyRemotePolicy(envelope.config);
+                    PublishCatalogue();
+                });
+            }
             else if (envelope.type == "repo.config.catalogue.request")
             {
                 _mainThreadActions.Enqueue(PublishCatalogue);
