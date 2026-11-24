@@ -1,0 +1,22 @@
+bin/
+obj/
+dist/
+artifacts/
+.vs/
+.vscode/
+*.user
+*.suo
+*.cache
+*.log
+
+# Local game / mod-manager paths and proprietary game assemblies
+Directory.Repo.props
+REPO_Data/
+BepInEx/
+*.dll
+!lib/README.md
+
+# Local secrets and credentials
+.env
+.env.*
+*.token
