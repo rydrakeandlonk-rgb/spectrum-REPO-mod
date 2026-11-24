@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using REPOLib.Extensions;
 using REPOLib.Modules;
 using REPOLib.Objects;
@@ -10,17 +9,11 @@ using SpectrumRepoMod.Rewards;
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Reads the live REPOLib registries. Only explicitly recognized non-combat
-/// shop categories enter the utility pool; everything else fails closed.
+/// Reads the live REPOLib registries. All valid shop items enter the initial
+/// utility catalogue; only exact IDs in SpawnWeaponsBlocker can be blocked.
 /// </summary>
 public static class RepoCatalogBuilder
 {
-    private static readonly HashSet<string> SupportedUtilityTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "drone", "tracker", "itemupgrade", "healthpack",
-        "powercrystal", "cart", "pocketcart"
-    };
-
     public static SpawnCatalogSnapshot<RepoSpawnTarget> Build(SpawnPolicy? policy = null)
     {
         var candidates = new List<RewardCandidate<RepoSpawnTarget>>();
@@ -37,13 +30,12 @@ public static class RepoCatalogBuilder
         {
             if (item == null || item.prefab == null || !item.prefab.IsValid()) continue;
             var id = "item:" + item.prefab.ResourcePath;
-            var classification = ClassifyShopItem(item);
             candidates.Add(new RewardCandidate<RepoSpawnTarget>(
                 RewardCategory.UtilityItem,
                 id,
                 string.IsNullOrWhiteSpace(item.itemName) ? item.prefab.PrefabName : item.itemName,
                 RepoSpawnTarget.ForShopItem(item),
-                classification));
+                ShopItemClassification.Unknown));
         }
 
         foreach (var valuable in Valuables.AllValuables)
@@ -51,26 +43,12 @@ public static class RepoCatalogBuilder
             if (valuable == null || !valuable.IsValid()) continue;
             var id = "valuable:" + valuable.ResourcePath;
             candidates.Add(new RewardCandidate<RepoSpawnTarget>(
-                RewardCategory.Valuable,
-                id,
-                valuable.PrefabName,
-                RepoSpawnTarget.ForValuable(valuable),
-                ShopItemClassification.Valuable));
+                RewardCategory.Valuable, id, valuable.PrefabName,
+                RepoSpawnTarget.ForValuable(valuable), ShopItemClassification.Valuable));
         }
 
-        return SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates, policy ?? SpawnPolicy.Default);
-    }
-
-    private static ShopItemClassification ClassifyShopItem(Item item)
-    {
-        var type = item.GetType();
-        var field = type.GetField("itemType", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        var property = type.GetProperty("itemType", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        object? value = field != null ? field.GetValue(item) : property?.GetValue(item);
-        var normalized = Convert.ToString(value)?.Replace("_", "").Replace(" ", "").Trim();
-        if (string.IsNullOrWhiteSpace(normalized)) return ShopItemClassification.Unknown;
-        return SupportedUtilityTypes.Contains(normalized)
-            ? ShopItemClassification.Utility
-            : ShopItemClassification.Excluded;
+        return policy == null
+            ? SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates)
+            : SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates, policy);
     }
 }
