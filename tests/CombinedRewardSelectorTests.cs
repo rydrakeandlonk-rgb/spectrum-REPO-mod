@@ -161,10 +161,9 @@ public sealed class CombinedRewardSelectorTests
     [Fact]
     public void FailsClearlyWhenNothingIsEligible()
     {
-        var policy = new SpawnPolicy(false, 1d, false, 1d, false, 1d);
         Assert.Throws<InvalidOperationException>(() =>
-            CombinedRewardSelector.Select(new[] { Candidate(RewardCategory.Monster, "enemy:a") },
-                policy, new Random(1)));
+            CombinedRewardSelector.Select(Array.Empty<RewardCandidate<string>>(),
+                SpawnPolicy.Default, new Random(1)));
     }
 
     private static RewardCandidate<string> Candidate(
