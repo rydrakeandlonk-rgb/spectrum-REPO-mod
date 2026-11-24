@@ -125,7 +125,7 @@ jobs:
         uses: Nexus-Mods/upload-action@98532f7670c27cbecc78fae03fa3e278147827e2
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_id: "8454900"
+          file_id: "8454957"
           filename: ./publish-package/Spectrum_REPO_Mod-${{ needs.build.outputs.version }}.zip
           version: ${{ needs.build.outputs.version }}
           display_name: Spectrum R.E.P.O. Mod
