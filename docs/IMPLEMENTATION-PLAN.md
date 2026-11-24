@@ -78,3 +78,22 @@ Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and b
 - Two- and multi-broadcaster multiplayer test matrix.
 - Host migration, duplicate delivery, reconnect and failure-path tests.
 - Thunderstore release notes and package validation.
+
+## Combined random reward contract
+
+The Twitch integration uses one combined R.E.P.O. reward. Each valid redemption selects exactly one category, then one eligible entry from that category:
+
+- Monster
+- Non-weapon utility item
+- Valuable
+
+Initial category selection is uniform (one-third probability per category). Selection within a category is uniform across its currently eligible allowlist entries. A category with no eligible entries is excluded from that selection; if all categories are unavailable, the command fails with a clear result and does not acknowledge success.
+
+Control Center owns the category probability settings, with equal probabilities as defaults. The gateway forwards the resolved configuration snapshot with each command so retries use the same selection rules. The game host chooses and records the selected category and entry against the command ID; a retry must return the recorded result rather than rerolling.
+
+There is one Twitch reward mapping and one Event Hub readiness gate for R.E.P.O. Manual Control Center tests use the same typed command and host execution path but are marked as administrator-originated test actions, bypassing Twitch redemption intake without bypassing host authority, category allowlists, or deduplication.
+
+Control Center's R.E.P.O. view must show live connected broadcaster sessions and their game/lobby relationship, and expose manual tests for the combined random reward. The test result must report the selected category, selected entry label, and host execution outcome.
+
+Category probability changes are configuration updates, not additional Twitch rewards. They must be validated as finite non-negative weights with a positive total and applied from a versioned configuration snapshot. The initial default is equal weighting.
+
