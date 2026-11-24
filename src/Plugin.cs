@@ -4,7 +4,7 @@ using BepInEx.Logging;
 namespace SpectrumRepoMod;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-[BepInDependency("Zehs.REPOLib", BepInDependency.DependencyFlags.HardDependency)]
+[BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
@@ -17,6 +17,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Log.LogInfo($"{PluginName} {PluginVersion} loaded.");
-        Log.LogInfo("BepInEx and REPOLib dependencies resolved. Game integration is being initialized.");
+        Log.LogInfo($"REPOLib {REPOLib.MyPluginInfo.PLUGIN_VERSION} dependency resolved.");
+        Log.LogInfo("Spectrum gateway and multiplayer integration are not enabled in this bootstrap build.");
     }
 }
