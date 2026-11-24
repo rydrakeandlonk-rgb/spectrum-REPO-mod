@@ -1,6 +1,6 @@
 {
   "name": "Spectrum_REPO_Mod",
-  "version_number": "0.1.1",
+  "version_number": "0.1.2",
   "website_url": "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod",
   "description": "Early R.E.P.O. host-side test build with in-game Twitch pairing and unrestricted item catalogue validation. Twitch redemptions are not enabled yet.",
   "dependencies": [
