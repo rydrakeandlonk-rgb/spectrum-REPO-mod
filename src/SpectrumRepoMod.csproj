@@ -6,7 +6,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>SpectrumRepoMod</AssemblyName>
     <RootNamespace>SpectrumRepoMod</RootNamespace>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
