@@ -8,6 +8,15 @@ public static class CombinedRewardSelector
 {
     public static RewardCandidate<T> Select<T>(
         IEnumerable<RewardCandidate<T>> source,
+        SpawnPolicy policy,
+        Random random)
+    {
+        if (policy == null) throw new ArgumentNullException(nameof(policy));
+        return Select(source, policy.Weights, random, policy.Exclusions);
+    }
+
+    public static RewardCandidate<T> Select<T>(
+        IEnumerable<RewardCandidate<T>> source,
         RewardCategoryWeights weights,
         Random random,
         SpawnExclusionList? exclusions = null)

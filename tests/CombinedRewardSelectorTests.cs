@@ -61,7 +61,7 @@ public sealed class CombinedRewardSelectorTests
     {
         var exclusions = new SpawnExclusionList(
             new[] { new SpawnExclusionEntry(RewardCategory.UtilityItem, "Shop.SpecialItem", "Balance") },
-            new[] { "weapon" });
+            Array.Empty<string>());
         Assert.True(exclusions.IsExcluded(RewardCategory.UtilityItem, "shop.specialitem"));
         Assert.True(exclusions.IsExcluded(RewardCategory.Monster, "another.id", new[] { "WEAPON" }));
         Assert.False(exclusions.IsExcluded(RewardCategory.Valuable, "ordinary.valuable", new[] { "utility" }));
@@ -160,6 +160,32 @@ public sealed class CombinedRewardSelectorTests
             monstersEnabled: false, monsterWeight: 1d,
             utilityItemsEnabled: false, utilityItemWeight: 1d,
             valuablesEnabled: true, valuableWeight: 0d));
+    }
+
+    [Fact]
+    public void WeaponTagCannotBeRemovedFromGameSideBaseline()
+    {
+        var exclusions = new SpawnExclusionList(Array.Empty<SpawnExclusionEntry>(), Array.Empty<string>());
+        Assert.True(exclusions.IsExcluded(RewardCategory.UtilityItem, "shop.sample", new[] { "weapon" }));
+    }
+
+    [Fact]
+    public void CombinedSelectorCanConsumeTheValidatedSpawnPolicy()
+    {
+        var policy = new SpawnPolicy(
+            monstersEnabled: true, monsterWeight: 1d,
+            utilityItemsEnabled: false, utilityItemWeight: 1d,
+            valuablesEnabled: true, valuableWeight: 1d);
+        var candidates = new[]
+        {
+            Candidate(RewardCategory.Monster, "monster-a"),
+            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
+            Candidate(RewardCategory.Valuable, "valuable-a")
+        };
+
+        var selected = CombinedRewardSelector.Select(candidates, policy, new FixedRandom(0.1, 0));
+
+        Assert.Equal(RewardCategory.Monster, selected.Category);
     }
 
     [Fact]

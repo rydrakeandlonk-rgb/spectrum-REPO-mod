@@ -38,6 +38,9 @@ public sealed class SpawnExclusionList
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
                 .Select(Normalize),
             StringComparer.OrdinalIgnoreCase);
+        // Weapons are excluded by the game-side policy even if a remote or
+        // stale configuration accidentally omits the baseline tag.
+        _globalTags.Add("weapon");
     }
 
     public bool IsExcluded(RewardCategory category, string id, IEnumerable<string>? tags = null) =>
