@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       publish_to_nexus:
@@ -12,11 +14,6 @@ on:
         required: true
         type: boolean
         default: false
-      nexus_file_id:
-        description: "Existing Nexus Mods file ID for mod 400 (required only when publishing)"
-        required: false
-        type: string
-        default: "8454900"
 
 permissions:
   contents: read
@@ -108,17 +105,15 @@ jobs:
 
   publish:
     name: Publish verified build to Nexus Mods
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Validate Nexus publishing inputs
         env:
           NEXUS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
-          NEXUS_FILE_ID: ${{ inputs.nexus_file_id }}
         run: |
           test -n "$NEXUS_API_KEY" || { echo "::error::Missing repository secret NEXUSMODS_API_KEY."; exit 1; }
-          test -n "$NEXUS_FILE_ID" || { echo "::error::Enter the existing Nexus file ID for mod 400."; exit 1; }
 
       - name: Download verified package
         uses: actions/download-artifact@v4
@@ -130,7 +125,7 @@ jobs:
         uses: Nexus-Mods/upload-action@98532f7670c27cbecc78fae03fa3e278147827e2
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
-          file_id: ${{ inputs.nexus_file_id }}
+          file_id: "8454900"
           filename: ./publish-package/Spectrum_REPO_Mod-${{ needs.build.outputs.version }}.zip
           version: ${{ needs.build.outputs.version }}
           display_name: Spectrum R.E.P.O. Mod
