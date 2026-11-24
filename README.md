@@ -10,7 +10,7 @@ Spectrum's host-side R.E.P.O. integration. It connects a broadcaster's game inst
 - BepInEx 5
 - REPOLib
 
-Install the mod and its dependencies through Vortex from the [Spectrum R.E.P.O. Mod Nexus page](https://www.nexusmods.com/repo/mods/400).
+Make sure BepInEx 5 and REPOLib are installed for R.E.P.O. Then install **Spectrum R.E.P.O. Mod** through Vortex from the [Spectrum R.E.P.O. Mod Nexus page](https://www.nexusmods.com/repo/mods/400).
 
 ## Install with Vortex
 
