@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.2
+- Align the shipped plugin and assembly version with the final pairing and unrestricted-catalogue build.
+
 ## 0.1.1
 - Add the in-game Connect to Twitch panel, Control Center approval and automatic local credential storage.
 - Remove manual host credential generation/copying from the dashboard workflow.
