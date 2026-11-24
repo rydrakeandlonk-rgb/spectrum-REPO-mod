@@ -1,0 +1,18 @@
+name: R.E.P.O. selection tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-selection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Run reward-selection tests
+        run: dotnet test ./tests/SpectrumRepoMod.Tests.csproj --configuration Release

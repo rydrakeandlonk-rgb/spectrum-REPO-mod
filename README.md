@@ -45,7 +45,7 @@ $(REPOGamePath)/REPO_Data/Managed
 
 Do not commit game DLLs, BepInEx DLLs, host tokens, service secrets or local profile data.
 
-The plugin is not ready for public distribution until it has been built against the current game assemblies and tested in both host and client roles.
+The combined-reward selection core now has isolated automated tests. The game-catalogue adapter, multiplayer transport and gateway connection are still under implementation. The plugin is not ready for public distribution until it has been built against the current game assemblies and tested in both host and client roles.
 
 ## Related repository
 

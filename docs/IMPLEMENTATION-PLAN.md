@@ -51,6 +51,9 @@ Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and b
 - Plugin load and dependency logging.
 
 ### M1 — R.E.P.O. runtime validation
+- [x] Verify the REPOLib catalogue/spawn surface: `Enemies.AllEnemies`, `Items.AllItems`, `Valuables.AllValuables`, and host-only item/valuable spawn methods are available in the library source. The game-side item classification still needs local runtime validation.
+- [x] Add a pure combined-reward selector with weighted category selection, category fallback when a pool is empty, and fail-closed handling for unclassified shop entries.
+- [x] Add isolated automated tests for selection, category fallback, category weights and shop-entry classification.
 - Build against the installed game's managed assemblies.
 - Confirm current R.E.P.O. version and supported lobby/run lifecycle hooks.
 - Confirm current Master Client detection and host migration behavior.
