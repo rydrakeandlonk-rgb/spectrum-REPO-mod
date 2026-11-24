@@ -106,6 +106,63 @@ public sealed class CombinedRewardSelectorTests
     }
 
     [Fact]
+    public void SpawnPolicyAppliesCategoryTogglesAndWeights()
+    {
+        var policy = new SpawnPolicy(
+            monstersEnabled: true, monsterWeight: 3d,
+            utilityItemsEnabled: false, utilityItemWeight: 8d,
+            valuablesEnabled: true, valuableWeight: 2d);
+
+        Assert.True(policy.IsCategoryEnabled(RewardCategory.Monster));
+        Assert.False(policy.IsCategoryEnabled(RewardCategory.UtilityItem));
+        Assert.True(policy.IsCategoryEnabled(RewardCategory.Valuable));
+        Assert.Equal(3d, policy.Weights.Monster);
+        Assert.Equal(0d, policy.Weights.UtilityItem);
+        Assert.Equal(2d, policy.Weights.Valuable);
+    }
+
+    [Fact]
+    public void SpawnPolicyBlocksDisabledCategoryAtFinalValidation()
+    {
+        var policy = new SpawnPolicy(
+            monstersEnabled: false, monsterWeight: 1d,
+            utilityItemsEnabled: true, utilityItemWeight: 1d,
+            valuablesEnabled: true, valuableWeight: 1d);
+
+        Assert.False(policy.TryValidateSpawn(Candidate(RewardCategory.Monster, "monster-a"), out var reason));
+        Assert.Equal("This reward category is disabled in Control Center", reason);
+    }
+
+    [Fact]
+    public void SpawnPolicyFiltersCandidatesBeforeSelection()
+    {
+        var policy = new SpawnPolicy(
+            monstersEnabled: true, monsterWeight: 1d,
+            utilityItemsEnabled: false, utilityItemWeight: 1d,
+            valuablesEnabled: true, valuableWeight: 1d);
+        var candidates = new[]
+        {
+            Candidate(RewardCategory.Monster, "monster-a"),
+            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
+            Candidate(RewardCategory.Valuable, "valuable-a")
+        };
+
+        var eligible = policy.GetEligibleCandidates(candidates);
+
+        Assert.DoesNotContain(eligible, candidate => candidate.Category == RewardCategory.UtilityItem);
+        Assert.Equal(2, eligible.Count);
+    }
+
+    [Fact]
+    public void SpawnPolicyRequiresAnEnabledPositiveWeight()
+    {
+        Assert.Throws<ArgumentException>(() => new SpawnPolicy(
+            monstersEnabled: false, monsterWeight: 1d,
+            utilityItemsEnabled: false, utilityItemWeight: 1d,
+            valuablesEnabled: true, valuableWeight: 0d));
+    }
+
+    [Fact]
     public void CatalogueSnapshotListsAllowedAndExcludedRows()
     {
         var candidates = new[]

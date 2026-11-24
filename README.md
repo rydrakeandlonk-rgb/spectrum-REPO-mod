@@ -45,7 +45,7 @@ $(REPOGamePath)/REPO_Data/Managed
 
 Do not commit game DLLs, BepInEx DLLs, host tokens, service secrets or local profile data.
 
-The combined-reward selection core and immutable catalogue snapshot have isolated automated tests. The selector accepts a Random instance; retry-safe selection still needs the gateway/host layer to persist a chosen result against each command ID. The live game-catalogue adapter, multiplayer transport and gateway connection are still under implementation. The plugin is not ready for public distribution until it has been built against the current game assemblies and tested in both host and client roles.
+The combined-reward selection core, immutable catalogue snapshot, category policy and final spawn guard have isolated automated tests. The selector accepts a Random instance; retry-safe selection still needs the gateway/host layer to persist a chosen result against each command ID. The live game-catalogue adapter, multiplayer transport and gateway connection are still under implementation. The plugin is not ready for public distribution until it has been built against the current game assemblies and tested in both host and client roles.
 
 ## Related repository
 

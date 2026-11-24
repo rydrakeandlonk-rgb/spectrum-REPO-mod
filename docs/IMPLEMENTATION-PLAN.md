@@ -57,6 +57,7 @@ Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and b
 - [x] Add a pure combined-reward selector with weighted category selection, category fallback when a pool is empty, and fail-closed handling for unclassified shop entries.
 - [x] Add a universal category-scoped No Spawn List for monsters, shop utility items, and valuables, including exclusion reasons and global tags. Apply it before selection; the runtime executor must recheck it before spawning.
 - [x] Add an immutable catalogue snapshot that sorts entries, detects duplicate IDs, exposes allowed/excluded rows and reports exclusion reasons.
+- [x] Add a shared runtime spawn policy for category enable/disable, relative weights, and No Spawn List enforcement.
 - [x] Add one final spawn safety guard for both catalogue filtering and the host's immediate pre-spawn validation.
 - [x] Add isolated automated tests for selection, category fallback, category weights, category-scoped exclusions, catalogue snapshots and final spawn validation.
 - Build against the installed game's managed assemblies.
