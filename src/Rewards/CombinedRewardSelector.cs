@@ -12,22 +12,20 @@ public static class CombinedRewardSelector
         Random random)
     {
         if (policy == null) throw new ArgumentNullException(nameof(policy));
-        return Select(source, policy.Weights, random, policy.Exclusions);
+        return Select(source, policy.Weights, random);
     }
 
     public static RewardCandidate<T> Select<T>(
         IEnumerable<RewardCandidate<T>> source,
         RewardCategoryWeights weights,
-        Random random,
-        SpawnExclusionList? exclusions = null)
+        Random random)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (weights == null) throw new ArgumentNullException(nameof(weights));
         if (random == null) throw new ArgumentNullException(nameof(random));
-        exclusions ??= SpawnExclusionList.Default;
 
         var eligible = source
-            .Where(candidate => SpawnSafetyGuard.TryValidate(candidate, exclusions, out _))
+            .Where(candidate => SpawnSafetyGuard.TryValidate(candidate, out _))
             .GroupBy(candidate => candidate.Category)
             .ToDictionary(group => group.Key, group => group.ToArray());
 
