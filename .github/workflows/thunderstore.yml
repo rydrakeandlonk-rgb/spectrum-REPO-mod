@@ -5,7 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,18 +13,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.package_meta.outputs.version }}
+      package_version: ${{ steps.package_version.outputs.value }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Read package version
-        id: package_meta
+        id: package_version
         shell: bash
         run: |
+          set -euo pipefail
           VERSION="$(python3 -c 'import json; print(json.load(open("manifest.json", encoding="utf-8"))["version_number"])')"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building Spectrum_REPO_Mod $VERSION"
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building Spectrum_REPO_Mod version $VERSION"
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -44,7 +46,7 @@ jobs:
       - name: Assemble Thunderstore ZIP
         shell: bash
         env:
-          PACKAGE_VERSION: ${{ steps.package_meta.outputs.version }}
+          PACKAGE_VERSION: ${{ steps.package_version.outputs.value }}
         run: |
           set -euo pipefail
           test -f dist/Spectrum_REPO_Mod/BepInEx/plugins/SpectrumRepoMod.dll
@@ -56,7 +58,7 @@ jobs:
           manifest["version_number"] = os.environ["PACKAGE_VERSION"]
           with open(path, "w", encoding="utf-8") as f:
               json.dump(manifest, f, indent=2)
-              f.write("\n")
+              f.write("\\n")
           PY
           cd dist/Spectrum_REPO_Mod
           zip -r "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" .
@@ -64,29 +66,65 @@ jobs:
       - name: Upload installable package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Spectrum_REPO_Mod-${{ steps.package_meta.outputs.version }}
-          path: dist/Spectrum_REPO_Mod-${{ steps.package_meta.outputs.version }}.zip
+          name: Spectrum_REPO_Mod-${{ steps.package_version.outputs.value }}
+          path: dist/Spectrum_REPO_Mod-${{ steps.package_version.outputs.value }}.zip
           if-no-files-found: error
           retention-days: 14
 
+  release-check:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - name: Check out source history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check whether the manifest version changed
+        id: compare
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No previous commit available; skipping automatic publish."
+            exit 0
+          fi
+          OLD_VERSION="$(git show "${BEFORE_SHA}:manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["version_number"])')"
+          NEW_VERSION="$(python3 -c 'import json; print(json.load(open("manifest.json", encoding="utf-8"))["version_number"])')"
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Thunderstore version changed: $OLD_VERSION -> $NEW_VERSION"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Thunderstore version unchanged ($NEW_VERSION); build only."
+          fi
+
   publish:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
-    needs: build
+    if: ${{ github.event_name == 'push' && needs.release-check.outputs.version_changed == 'true' }}
+    needs: [build, release-check]
     runs-on: ubuntu-latest
     steps:
-      - name: Check out package metadata
-        uses: actions/checkout@v4
+      - name: Validate publishing credentials
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
+        run: |
+          test -n "$TCLI_AUTH_TOKEN" || { echo "Missing repository secret TCLI_AUTH_TOKEN."; exit 1; }
 
       - name: Download package artifact
         uses: actions/download-artifact@v4
         with:
-          name: Spectrum_REPO_Mod-${{ needs.build.outputs.version }}
+          name: Spectrum_REPO_Mod-${{ needs.build.outputs.package_version }}
           path: ./publish-package
 
       - name: Configure Thunderstore CLI
         shell: bash
         env:
-          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.package_version }}
         run: |
           cat > thunderstore.toml <<EOF
           [config]
@@ -112,6 +150,6 @@ jobs:
       - name: Publish to Thunderstore
         env:
           TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
-          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.package_version }}
         run: |
           tcli publish --file "./publish-package/Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" --token "$TCLI_AUTH_TOKEN" --config-path "./thunderstore.toml"
