@@ -1,112 +1,64 @@
-# Implementation plan
+# R.E.P.O. Mod implementation plan
 
-## Repository boundaries
+## Ownership
 
-- This repository owns the R.E.P.O. BepInEx plugin, local gateway client, R.E.P.O. multiplayer forwarding, spawn catalog/execution and Thunderstore package.
-- `spectrum-cloudflare` remains the only owner of Twitch/EventSub, member identity/access, Control Center configuration, broadcaster-scoped Game Mods sessions, delivery queues, retries and gateway acknowledgements.
-- Do not add Twitch credentials, Cloudflare secrets, a second EventSub subscription manager or another general-purpose gateway here.
+- This repository owns the R.E.P.O. BepInEx plugin, game catalogue, spawn execution, local pairing client and Thunderstore package.
+- spectrum-cloudflare owns Twitch identity/access, Control Center approval, Game Mods sessions, reward delivery and acknowledgements.
+- Do not add Twitch passwords, Cloudflare secrets or a second EventSub manager to this mod.
 
-## Verified package contract
+## Current implementation
 
-- BepInExPack is an external Thunderstore dependency. Do not bundle or recreate it.
-- REPOLib is an external Thunderstore dependency and a hard BepInEx dependency.
-- The Thunderstore package uses the published REPOLib version pinned in `manifest.json`.
-- The BepInEx plugin GUID is `REPOLib` (the Thunderstore namespace `Zehs` is not the runtime plugin GUID).
+- BepInEx 5 plugin with REPOLib as a hard dependency.
+- Live catalogue snapshot sourced from REPOLib enemies, items and valuables.
+- Category toggles and relative weights are received from Control Center.
+- Host-side test spawn requests are validated immediately before execution.
+- The in-game Spectrum panel opens automatically when no connection is saved; F8 toggles it.
+- Connect to Twitch starts a short-lived device-code pairing request, opens Control Center, and receives the private R.E.P.O. host credential after the authenticated Spectrum member approves it.
+- The credential is stored locally in the BepInEx config and reconnects automatically.
+- The dashboard displays connected broadcaster sessions and their run/lobby status.
 
-## Multiplayer requirements
+## Unrestricted catalogue validation stage
 
-1. Each participating Spectrum broadcaster retains an independent authenticated gateway session.
-2. A redemption is delivered to the mod connection belonging to the broadcaster that redeemed it.
-3. The receiving client forwards the request to the current R.E.P.O. Master Client through the game's multiplayer transport.
-4. Only the current Master Client may execute a shared spawn.
-5. The host validates request shape, category allowlist, active run state, request origin/authorization, limits and deduplication before execution.
-6. The host returns a result to the originating client; that client acknowledges its own gateway delivery only after receiving the host result.
-7. A retry with the same command ID must return the prior result rather than create a second spawn.
-8. Host migration, disconnects and lobby/run transitions invalidate stale routing state.
+The immediate goal is to verify that ordinary shop items can be discovered and spawned correctly before any exclusions are added.
 
-The Spectrum broadcaster identity and R.E.P.O. lobby identity remain separate. Multiple broadcasters can participate in one lobby without sharing credentials or merging their gateway sessions.
+- All valid entries from REPOLib Items.AllItems are included in the utility-item catalogue.
+- Previous item-type allow-lists, weapon classification checks, unknown-item rejection and global weapon tags are disabled.
+- SpawnWeaponsBlocker.cs is the only source of item exclusions and currently has an empty ID list.
+- Keep category enable/weight settings separate from item exclusions.
+- Do not add guessed IDs, display names, tags or category-wide exclusions.
+- Record exact stable catalogue IDs and spawn results for any item that proves incompatible. Only then add an explicit entry to SpawnWeaponsBlocker.cs.
 
-## Security/design gate before implementation
+## Connection flow
 
-A PUN message from a lobby client is not, by itself, proof that the message represents a valid Twitch redemption. Before enabling shared spawns, choose and test a host-verifiable authorization mechanism for forwarded commands. The options to evaluate are a short-lived gateway-signed command envelope or a server-side validation exchange through the existing gateway. Do not trust a client-supplied broadcaster ID, host flag or redemption ID without validation.
+1. The mod requests a random private device code and a short human-readable approval code from Game Mods.
+2. The mod opens the Control Center URL carrying only the approval code.
+3. The signed-in Twitch identity is checked against the active Spectrum member roster.
+4. The Control Center authorises the pairing through a service-authenticated request.
+5. Game Mods provisions a broadcaster-scoped R.E.P.O. host session and stores only a hash of the private host token.
+6. The mod polls using the private device code, receives the one-time host token directly, saves it locally and connects over the existing WebSocket gateway.
+7. The dashboard reads connection/run/lobby state from the R.E.P.O. host session.
 
-The game networking event transport also needs a compatibility test. REPOLib exposes networked-event helpers, but event-code allocation and registration order must be checked across the same mod profile on every participant before we rely on it.
+The browser never receives the host token. The R.E.P.O. pairing namespace is separate from Stardew pairing and provisions REPO_HOST_SESSION rather than a Stardew session.
 
-## Spawn scope
+## Current limitations
 
-- Enemy catalogue entries, sourced from REPOLib's current enemy registry.
-- Eligible shop utility items and valuables, sourced from REPOLib's current registries and filtered through one central spawn exclusion list.
-- The universal No Spawn List is category-scoped across monsters, shop utility items, and valuables. Each entry contains category, stable catalogue ID, and reason; IDs only block the matching category.
-- Global tags can block entries across categories. The default global tag excludes weapons. Unknown shop-item classifications remain ineligible.
-- Apply exclusions both when building the candidate catalogue and immediately before host-side spawn execution.
+- Twitch Channel Point reward delivery is not enabled for R.E.P.O. yet.
+- Non-host multiplayer participant forwarding to the current lobby Master Client is not implemented.
+- The unrestricted item pool is a temporary test mode, not a final curated release pool.
+- A connected WebSocket is not proof that a run is active or that the broadcaster is the lobby host; those states are reported separately.
 
-The adapter should use the current REPOLib registry properties (`Enemies.AllEnemies`, `Items.AllItems`, and `Valuables.AllValuables`) rather than maintaining a static catalogue of ordinary vanilla content. Build the candidate snapshot only after the run and content registries are ready. The utility-item eligibility classifier must be conservative: only known supported utility entries enter the pool; unsupported or ambiguous entries are excluded and surfaced in diagnostics.
+## Next validation steps
 
-Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and bounded quantities/cooldowns. The initial scope excludes weapons.
+1. Build and test the plugin through GitHub Actions.
+2. Install the resulting test package and confirm the F8 connection panel appears.
+3. Pair one Spectrum broadcaster through the in-game Connect to Twitch button.
+4. Confirm Control Center reports the host as connected without manual config editing.
+5. Start a R.E.P.O. run and confirm catalogue counts are published.
+6. Test several ordinary shop items and record exact IDs and outcomes.
+7. Test valuables and monsters separately.
+8. Only after catalogue/spawn validation, add specific confirmed IDs to SpawnWeaponsBlocker.cs.
+9. Complete multiplayer host-authority and host-migration tests before enabling Twitch reward delivery.
 
-## Milestones
+## Future multiplayer contract
 
-### M0 — Bootstrap
-- BepInEx 5 / Mono plugin project.
-- REPOLib hard dependency.
-- Thunderstore manifest depends on BepInExPack and REPOLib; neither is copied into the package.
-- Plugin load and dependency logging.
-
-### M1 — R.E.P.O. runtime validation
-- [x] Verify the REPOLib catalogue/spawn surface: `Enemies.AllEnemies`, `Items.AllItems`, `Valuables.AllValuables`, and host-only item/valuable spawn methods are available in the library source. The game-side item classification still needs local runtime validation.
-- [x] Add a pure combined-reward selector with weighted category selection, category fallback when a pool is empty, and fail-closed handling for unclassified shop entries.
-- [x] Add a universal category-scoped No Spawn List for monsters, shop utility items, and valuables, including exclusion reasons and global tags. Apply it before selection; the runtime executor must recheck it before spawning.
-- [x] Add an immutable catalogue snapshot that sorts entries, detects duplicate IDs, exposes allowed/excluded rows and reports exclusion reasons.
-- [x] Add a shared runtime spawn policy for category enable/disable, relative weights, and No Spawn List enforcement.
-- [x] Add one final spawn safety guard for both catalogue filtering and the host's immediate pre-spawn validation.
-- [x] Add isolated automated tests for selection, category fallback, category weights, category-scoped exclusions, catalogue snapshots and final spawn validation.
-- [x] Add a live REPOLib catalogue adapter for enemies, shop items and valuables. Utility items are admitted only when their item category is explicitly recognized as non-combat; unknown and unsupported entries fail closed.
-- [x] Add a host-only REPOLib spawn executor for all three reward categories. It revalidates the shared policy immediately before the game API call and requires a successful game spawn result.
-- Build the full plugin against the installed game's managed assemblies; CI currently covers the isolated policy/selector core only.
-- Confirm current R.E.P.O. version and supported lobby/run lifecycle hooks.
-- Confirm current Master Client detection and host migration behavior.
-- Validate the multiplayer request transport across two clients.
-
-### M2 — Local host-authoritative prototype
-- Typed request envelope and strict size/schema validation.
-- Non-host-to-host forwarding.
-- Host-only execution guard.
-- Duplicate command suppression and result return.
-- No gateway integration yet; test locally in a private multiplayer lobby.
-
-### M3 — Gateway adapter
-- Audit the exact existing Game Mods WebSocket protocol and pairing flow.
-- Add R.E.P.O. as a separate game adapter in the existing `spectrum-game-mods` Worker.
-- Add a separate Event Hub readiness gate for R.E.P.O.; do not alter Stardew readiness.
-- Preserve broadcaster-scoped sessions and existing Stardew behavior.
-- Implement and test host-verifiable authorization before accepting forwarded requests.
-
-### M4 — Spawn catalog and Control Center
-- Enemy, non-weapon utility-item and valuable allowlists.
-- Configurable category toggles, limits and cooldowns.
-- R.E.P.O.-specific access/configuration in the existing Mods Manager only where the audit proves it is needed.
-
-### M5 — Release
-- Build/package validation.
-- Two- and multi-broadcaster multiplayer test matrix.
-- Host migration, duplicate delivery, reconnect and failure-path tests.
-- Thunderstore release notes and package validation.
-
-## Combined random reward contract
-
-The Twitch integration uses one combined R.E.P.O. reward. Each valid redemption selects exactly one category, then one eligible entry from that category:
-
-- Monster
-- Non-weapon utility item
-- Valuable
-
-Initial category selection is uniform (one-third probability per category). Selection within a category is uniform across its currently eligible allowlist entries. A category with no eligible entries is excluded from that selection; if all categories are unavailable, the command fails with a clear result and does not acknowledge success.
-
-Control Center owns the category probability settings, with equal probabilities as defaults. The gateway forwards the resolved configuration snapshot with each command so retries use the same selection rules. The game host chooses and records the selected category and entry against the command ID; a retry must return the recorded result rather than rerolling.
-
-There is one Twitch reward mapping and one Event Hub readiness gate for R.E.P.O. Manual Control Center tests use the same typed command and host execution path but are marked as administrator-originated test actions, bypassing Twitch redemption intake without bypassing host authority, category allowlists, or deduplication.
-
-Control Center's R.E.P.O. view must show live connected broadcaster sessions and their game/lobby relationship, and expose manual tests for the combined random reward. The test result must report the selected category, selected entry label, and host execution outcome.
-
-Category probability changes are configuration updates, not additional Twitch rewards. They must be validated as finite non-negative weights with a positive total and applied from a versioned configuration snapshot. The initial default is equal weighting.
-
+Each broadcaster retains an independent authenticated gateway session even when multiple broadcasters share one lobby. A redemption belongs to the broadcaster whose Twitch channel received it, while the active R.E.P.O. Master Client owns shared-world spawn execution. Forwarded requests must be verifiable by the host; a client-supplied broadcaster ID or host flag is not sufficient proof. Retries must be deduplicated by stable command ID and return the original result rather than spawning twice.
