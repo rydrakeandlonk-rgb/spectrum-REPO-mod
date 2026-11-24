@@ -29,7 +29,13 @@ public sealed class RepoSpawnExecutor
             return false;
         }
 
-        if (policy == null || !policy.TryValidateSpawn(candidate, out result))
+        if (policy == null)
+        {
+            result = "The spawn policy is unavailable.";
+            return false;
+        }
+
+        if (!policy.TryValidateSpawn(candidate, out result))
             return false;
 
         var target = candidate.Value;
