@@ -35,8 +35,9 @@ The game networking event transport also needs a compatibility test. REPOLib exp
 ## Spawn scope
 
 - Enemy catalogue entries, sourced from REPOLib's current enemy registry.
-- Eligible non-weapon shop utility items, sourced from REPOLib's current item registry and filtered by the game adapter's explicit eligibility classifier.
-- Valuables, sourced from REPOLib's current valuable registry.
+- Eligible shop utility items and valuables, sourced from REPOLib's current registries and filtered through one central spawn exclusion list.
+- The exclusion list is deny-by-ID and deny-by-tag. The default list excludes the weapon tag globally; specific unstable or softlock-prone item IDs can be added without changing selection code.
+- Apply exclusions both when building the candidate catalogue and immediately before host-side spawn execution. Unknown classifications remain ineligible.
 
 The adapter should use the current REPOLib registry properties (`Enemies.AllEnemies`, `Items.AllItems`, and `Valuables.AllValuables`) rather than maintaining a static catalogue of ordinary vanilla content. Build the candidate snapshot only after the run and content registries are ready. The utility-item eligibility classifier must be conservative: only known supported utility entries enter the pool; unsupported or ambiguous entries are excluded and surfaced in diagnostics.
 
@@ -53,6 +54,7 @@ Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and b
 ### M1 — R.E.P.O. runtime validation
 - [x] Verify the REPOLib catalogue/spawn surface: `Enemies.AllEnemies`, `Items.AllItems`, `Valuables.AllValuables`, and host-only item/valuable spawn methods are available in the library source. The game-side item classification still needs local runtime validation.
 - [x] Add a pure combined-reward selector with weighted category selection, category fallback when a pool is empty, and fail-closed handling for unclassified shop entries.
+- [x] Add a central spawn exclusion list with a default weapon-tag exclusion, explicit item-ID exclusions, and tag-based exclusions. Apply it before selection; the runtime executor must recheck it before spawning.
 - [x] Add isolated automated tests for selection, category fallback, category weights and shop-entry classification.
 - Build against the installed game's managed assemblies.
 - Confirm current R.E.P.O. version and supported lobby/run lifecycle hooks.

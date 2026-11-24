@@ -42,6 +42,29 @@ public sealed class CombinedRewardSelectorTests
     }
 
     [Fact]
+    public void WeaponTaggedItemsAreExcludedFromShopRewardPool()
+    {
+        var candidates = new[]
+        {
+            new RewardCandidate<string>(RewardCategory.UtilityItem, "shop.weapon.sample", "Sample weapon",
+                "weapon", ShopItemClassification.Utility, new[] { "weapon" }),
+            Candidate(RewardCategory.UtilityItem, "approved-utility", ShopItemClassification.Utility)
+        };
+        var selected = CombinedRewardSelector.Select(candidates, RewardCategoryWeights.Default,
+            new FixedRandom(0.2, 0));
+        Assert.Equal("approved-utility", selected.Id);
+    }
+
+    [Fact]
+    public void ExplicitItemIdExclusionIsCaseInsensitive()
+    {
+        var exclusions = new SpawnExclusionList(new[] { "Shop.SpecialItem" }, new[] { "weapon" });
+        Assert.True(exclusions.IsExcluded("shop.specialitem"));
+        Assert.True(exclusions.IsExcluded("another.item", new[] { "WEAPON" }));
+        Assert.False(exclusions.IsExcluded("ordinary.utility", new[] { "utility" }));
+    }
+
+    [Fact]
     public void UnavailableCategoriesAreRemovedBeforeWeightedSelection()
     {
         var candidates = new[]
