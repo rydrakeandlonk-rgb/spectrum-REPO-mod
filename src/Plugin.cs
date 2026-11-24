@@ -27,6 +27,9 @@ public sealed class Plugin : BaseUnityPlugin
         Log = Logger;
         Log.LogInfo($"{PluginName} {PluginVersion} loaded.");
         Log.LogInfo($"REPOLib {REPOLib.MyPluginInfo.PLUGIN_VERSION} dependency resolved.");
+        _gateway = new RepoGatewayClient(Config);
+        _gateway.SpawnRequested += HandleSpawnRequest;
+        _gateway.Start();
         StartCoroutine(WaitForGameCatalogue());
     }
 
@@ -43,9 +46,6 @@ public sealed class Plugin : BaseUnityPlugin
             Log.LogInfo(
                 $"R.E.P.O. catalogue ready: {Catalog.TotalCount} entries, " +
                 $"{Catalog.AllowedCount} eligible, {Catalog.ExcludedCount} excluded.");
-            _gateway = new RepoGatewayClient(Config);
-            _gateway.SpawnRequested += HandleSpawnRequest;
-            _gateway.Start();
             StartCoroutine(PublishGatewayState());
         }
         catch (System.Exception error)
