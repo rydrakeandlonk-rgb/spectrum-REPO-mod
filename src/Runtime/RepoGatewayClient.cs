@@ -30,6 +30,8 @@ public sealed class RepoGatewayClient
             "Private R.E.P.O. host credential. Never share this value.");
     }
 
+    public event Action<string, string>? SpawnRequested;
+
     public bool IsConfigured =>
         Uri.TryCreate(_gatewayUrl.Value, UriKind.Absolute, out var uri) &&
         (uri.Scheme == "wss" || uri.Scheme == "https") &&
@@ -74,6 +76,19 @@ public sealed class RepoGatewayClient
     public void SendPing()
     {
         _ = Send(new BasicMessage { type = "session.ping" }, _cancellation.Token);
+    }
+
+    public void CompleteSpawn(string requestId, string category, bool success, string itemName, string detail)
+    {
+        _ = Send(new SpawnAckMessage
+        {
+            type = "command.ack",
+            request_id = requestId,
+            category = category,
+            success = success,
+            item_name = itemName,
+            detail = detail
+        }, _cancellation.Token);
     }
 
     private async Task ConnectionLoop(CancellationToken cancellationToken)
@@ -152,13 +167,8 @@ public sealed class RepoGatewayClient
             }
             else if (envelope.type == "repo.spawn.request")
             {
-                await Send(new SpawnAckMessage
-                {
-                    type = "command.ack",
-                    request_id = envelope.request_id ?? "",
-                    success = false,
-                    detail = "Spawn placement is not yet available in this mod build."
-                }, cancellationToken);
+                _mainThreadActions.Enqueue(() => SpawnRequested?.Invoke(
+                    envelope.category ?? "", envelope.request_id ?? ""));
             }
         }
     }
@@ -269,7 +279,9 @@ public sealed class RepoGatewayClient
     {
         public string type = "";
         public string request_id = "";
+        public string category = "";
         public bool success;
+        public string item_name = "";
         public string detail = "";
     }
     [Serializable] private sealed class CatalogueMessage
@@ -297,6 +309,7 @@ public sealed class RepoGatewayClient
         public string type = "";
         public bool ok;
         public string request_id = "";
+        public string category = "";
         public RepoConfigPayload? config;
     }
     [Serializable] private sealed class RepoConfigPayload
