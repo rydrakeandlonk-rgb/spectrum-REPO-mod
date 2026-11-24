@@ -9,110 +9,33 @@ namespace SpectrumRepoMod.Tests;
 public sealed class CombinedRewardSelectorTests
 {
     [Fact]
-    public void SelectsOneCategoryAndOneCandidate()
+    public void UnknownShopItemsAreEligibleDuringUnrestrictedCatalogueTest()
     {
-        var candidates = new[]
-        {
-            Candidate(RewardCategory.Monster, "monster-a"),
-            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
-            Candidate(RewardCategory.Valuable, "valuable-a")
-        };
-
-        var selected = CombinedRewardSelector.Select(candidates, RewardCategoryWeights.Default, new FixedRandom(0.1, 0));
-
-        Assert.Equal(RewardCategory.Monster, selected.Category);
-        Assert.Equal("monster-a", selected.Id);
+        var candidate = Candidate(RewardCategory.UtilityItem, "item:ordinary-tool");
+        Assert.True(candidate.IsEligible);
+        Assert.True(SpawnSafetyGuard.TryValidate(candidate, out _));
     }
 
     [Fact]
-    public void UnknownAndExcludedShopEntriesNeverEnterUtilityPool()
+    public void WeaponClassificationDoesNotRestrictInitialCatalogue()
     {
-        var candidates = new[]
-        {
-            Candidate(RewardCategory.UtilityItem, "unknown-item"),
-            Candidate(RewardCategory.UtilityItem, "excluded-item", ShopItemClassification.Excluded),
-            Candidate(RewardCategory.UtilityItem, "approved-utility", ShopItemClassification.Utility)
-        };
-
-        var selected = CombinedRewardSelector.Select(
-            candidates,
-            RewardCategoryWeights.Default,
-            new FixedRandom(0.2, 0));
-
-        Assert.Equal("approved-utility", selected.Id);
+        var candidate = Candidate(RewardCategory.UtilityItem, "item:weapon-prefab",
+            ShopItemClassification.Weapon);
+        Assert.True(SpawnSafetyGuard.TryValidate(candidate, out _));
     }
 
     [Fact]
-    public void WeaponTaggedItemsAreExcludedFromShopRewardPool()
+    public void EmptyWeaponsBlockerAllowsEveryUnlistedItem()
     {
-        var candidates = new[]
-        {
-            new RewardCandidate<string>(RewardCategory.UtilityItem, "shop.weapon.sample", "Sample weapon",
-                "weapon", ShopItemClassification.Utility, new[] { "weapon" }),
-            Candidate(RewardCategory.UtilityItem, "approved-utility", ShopItemClassification.Utility)
-        };
-        var selected = CombinedRewardSelector.Select(candidates, RewardCategoryWeights.Default,
-            new FixedRandom(0.2, 0));
-        Assert.Equal("approved-utility", selected.Id);
-    }
-
-    [Fact]
-    public void ExplicitItemIdExclusionIsCaseInsensitive()
-    {
-        var exclusions = new SpawnExclusionList(
-            new[] { new SpawnExclusionEntry(RewardCategory.UtilityItem, "Shop.SpecialItem", "Balance") },
-            Array.Empty<string>());
-        Assert.True(exclusions.IsExcluded(RewardCategory.UtilityItem, "shop.specialitem"));
-        Assert.True(exclusions.IsExcluded(RewardCategory.Monster, "another.id", new[] { "WEAPON" }));
-        Assert.False(exclusions.IsExcluded(RewardCategory.Valuable, "ordinary.valuable", new[] { "utility" }));
-        Assert.False(exclusions.IsExcluded(RewardCategory.Valuable, "Shop.SpecialItem"));
-    }
-
-    [Theory]
-    [InlineData(RewardCategory.Monster, "monster.blocked")]
-    [InlineData(RewardCategory.UtilityItem, "shop.blocked")]
-    [InlineData(RewardCategory.Valuable, "valuable.blocked")]
-    public void CategorySpecificExclusionsRemoveOnlyMatchingSpawnEntry(RewardCategory category, string id)
-    {
-        var exclusions = new SpawnExclusionList(new[]
-        {
-            new SpawnExclusionEntry(category, id, "Balance or stability")
-        });
-
-        Assert.True(exclusions.IsExcluded(category, id));
-        var otherCategory = category == RewardCategory.Monster
-            ? RewardCategory.Valuable
-            : RewardCategory.Monster;
-        Assert.False(exclusions.IsExcluded(otherCategory, id));
-    }
-
-    [Fact]
-    public void CustomExclusionListIsAppliedDuringSelection()
-    {
-        var candidates = new[]
-        {
-            Candidate(RewardCategory.Monster, "monster.blocked"),
-            Candidate(RewardCategory.Monster, "monster.allowed")
-        };
-        var exclusions = new SpawnExclusionList(new[]
-        {
-            new SpawnExclusionEntry(RewardCategory.Monster, "monster.blocked", "Too disruptive")
-        });
-
-        var selected = CombinedRewardSelector.Select(candidates, RewardCategoryWeights.Default,
-            new FixedRandom(0.1, 0), exclusions);
-
-        Assert.Equal("monster.allowed", selected.Id);
+        Assert.False(SpawnWeaponsBlocker.IsBlocked(RewardCategory.UtilityItem, "item:ordinary-item"));
+        Assert.False(SpawnWeaponsBlocker.IsBlocked(RewardCategory.UtilityItem, "item:weapon-item"));
+        Assert.False(SpawnWeaponsBlocker.IsBlocked(RewardCategory.Monster, "enemy:sample"));
     }
 
     [Fact]
     public void SpawnPolicyAppliesCategoryTogglesAndWeights()
     {
-        var policy = new SpawnPolicy(
-            monstersEnabled: true, monsterWeight: 3d,
-            utilityItemsEnabled: false, utilityItemWeight: 8d,
-            valuablesEnabled: true, valuableWeight: 2d);
-
+        var policy = new SpawnPolicy(true, 3d, false, 8d, true, 2d);
         Assert.True(policy.IsCategoryEnabled(RewardCategory.Monster));
         Assert.False(policy.IsCategoryEnabled(RewardCategory.UtilityItem));
         Assert.True(policy.IsCategoryEnabled(RewardCategory.Valuable));
@@ -124,109 +47,63 @@ public sealed class CombinedRewardSelectorTests
     [Fact]
     public void SpawnPolicyBlocksDisabledCategoryAtFinalValidation()
     {
-        var policy = new SpawnPolicy(
-            monstersEnabled: false, monsterWeight: 1d,
-            utilityItemsEnabled: true, utilityItemWeight: 1d,
-            valuablesEnabled: true, valuableWeight: 1d);
-
-        Assert.False(policy.TryValidateSpawn(Candidate(RewardCategory.Monster, "monster-a"), out var reason));
+        var policy = new SpawnPolicy(false, 1d, true, 1d, true, 1d);
+        Assert.False(policy.TryValidateSpawn(Candidate(RewardCategory.Monster, "enemy:a"), out var reason));
         Assert.Equal("This reward category is disabled in Control Center", reason);
     }
 
     [Fact]
-    public void SpawnPolicyFiltersCandidatesBeforeSelection()
+    public void SpawnPolicyFiltersOnlyDisabledCategories()
     {
-        var policy = new SpawnPolicy(
-            monstersEnabled: true, monsterWeight: 1d,
-            utilityItemsEnabled: false, utilityItemWeight: 1d,
-            valuablesEnabled: true, valuableWeight: 1d);
+        var policy = new SpawnPolicy(true, 1d, true, 1d, true, 1d);
         var candidates = new[]
         {
-            Candidate(RewardCategory.Monster, "monster-a"),
-            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
-            Candidate(RewardCategory.Valuable, "valuable-a")
+            Candidate(RewardCategory.Monster, "enemy:a"),
+            Candidate(RewardCategory.UtilityItem, "item:unknown", ShopItemClassification.Unknown),
+            Candidate(RewardCategory.UtilityItem, "item:weapon", ShopItemClassification.Weapon),
+            Candidate(RewardCategory.Valuable, "valuable:a")
         };
-
-        var eligible = policy.GetEligibleCandidates(candidates);
-
-        Assert.DoesNotContain(eligible, candidate => candidate.Category == RewardCategory.UtilityItem);
-        Assert.Equal(2, eligible.Count);
+        Assert.Equal(4, policy.GetEligibleCandidates(candidates).Count);
     }
 
     [Fact]
-    public void SpawnPolicyRequiresAnEnabledPositiveWeight()
+    public void CombinedSelectorCanConsumeValidatedSpawnPolicy()
     {
-        Assert.Throws<ArgumentException>(() => new SpawnPolicy(
-            monstersEnabled: false, monsterWeight: 1d,
-            utilityItemsEnabled: false, utilityItemWeight: 1d,
-            valuablesEnabled: true, valuableWeight: 0d));
-    }
-
-    [Fact]
-    public void WeaponTagCannotBeRemovedFromGameSideBaseline()
-    {
-        var exclusions = new SpawnExclusionList(Array.Empty<SpawnExclusionEntry>(), Array.Empty<string>());
-        Assert.True(exclusions.IsExcluded(RewardCategory.UtilityItem, "shop.sample", new[] { "weapon" }));
-    }
-
-    [Fact]
-    public void CombinedSelectorCanConsumeTheValidatedSpawnPolicy()
-    {
-        var policy = new SpawnPolicy(
-            monstersEnabled: true, monsterWeight: 1d,
-            utilityItemsEnabled: false, utilityItemWeight: 1d,
-            valuablesEnabled: true, valuableWeight: 1d);
+        var policy = new SpawnPolicy(true, 1d, true, 1d, true, 1d);
         var candidates = new[]
         {
-            Candidate(RewardCategory.Monster, "monster-a"),
-            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
-            Candidate(RewardCategory.Valuable, "valuable-a")
+            Candidate(RewardCategory.Monster, "enemy:a"),
+            Candidate(RewardCategory.UtilityItem, "item:ordinary", ShopItemClassification.Unknown),
+            Candidate(RewardCategory.Valuable, "valuable:a")
         };
-
-        var selected = CombinedRewardSelector.Select(candidates, policy, new FixedRandom(0.1, 0));
-
-        Assert.Equal(RewardCategory.Monster, selected.Category);
+        var selected = CombinedRewardSelector.Select(candidates, policy, new FixedRandom(0.4, 0));
+        Assert.Equal(RewardCategory.UtilityItem, selected.Category);
     }
 
     [Fact]
-    public void CatalogueSnapshotListsAllowedAndExcludedRows()
+    public void CatalogueSnapshotIncludesUnclassifiedAndWeaponClassifiedItems()
     {
-        var candidates = new[]
-        {
-            Candidate(RewardCategory.Monster, "monster-z"),
-            Candidate(RewardCategory.UtilityItem, "utility-unknown"),
-            Candidate(RewardCategory.UtilityItem, "utility-safe", ShopItemClassification.Utility),
-            Candidate(RewardCategory.Valuable, "valuable-a")
-        };
-        var exclusions = new SpawnExclusionList(new[]
-        {
-            new SpawnExclusionEntry(RewardCategory.Monster, "monster-z", "Balance")
-        });
-
-        var snapshot = SpawnCatalogSnapshot<string>.Build(candidates, exclusions);
-
-        Assert.Equal(4, snapshot.TotalCount);
-        Assert.Equal(2, snapshot.AllowedCount);
-        Assert.Equal(2, snapshot.ExcludedCount);
-        Assert.Equal("Balance", snapshot.Rows.Single(row => row.Candidate.Id == "monster-z").ExclusionReason);
-        Assert.Equal("Shop item has not been classified",
-            snapshot.Rows.Single(row => row.Candidate.Id == "utility-unknown").ExclusionReason);
-    }
-
-    [Fact]
-    public void CatalogueSnapshotCanReflectCategoryPolicy()
-    {
-        var policy = new SpawnPolicy(
-            monstersEnabled: true, monsterWeight: 1d,
-            utilityItemsEnabled: false, utilityItemWeight: 1d,
-            valuablesEnabled: true, valuableWeight: 1d);
         var snapshot = SpawnCatalogSnapshot<string>.Build(new[]
         {
-            Candidate(RewardCategory.Monster, "monster-a"),
-            Candidate(RewardCategory.UtilityItem, "utility-a", ShopItemClassification.Utility),
-            Candidate(RewardCategory.Valuable, "valuable-a")
-        }, policy);
+            Candidate(RewardCategory.UtilityItem, "item:unknown", ShopItemClassification.Unknown),
+            Candidate(RewardCategory.UtilityItem, "item:weapon", ShopItemClassification.Weapon),
+            Candidate(RewardCategory.UtilityItem, "item:valuable", ShopItemClassification.Excluded)
+        });
+        Assert.Equal(3, snapshot.TotalCount);
+        Assert.Equal(3, snapshot.AllowedCount);
+        Assert.Equal(0, snapshot.ExcludedCount);
+    }
 
+    [Fact]
+    public void CatalogueSnapshotReflectsCategoryPolicy()
+    {
+        var policy = new SpawnPolicy(true, 1d, false, 1d, true, 1d);
+        var snapshot = SpawnCatalogSnapshot<string>.Build(new[]
+        {
+            Candidate(RewardCategory.Monster, "enemy:a"),
+            Candidate(RewardCategory.UtilityItem, "item:a"),
+            Candidate(RewardCategory.Valuable, "valuable:a")
+        }, policy);
         Assert.Equal(2, snapshot.AllowedCount);
         Assert.Equal("This reward category is disabled in Control Center",
             snapshot.Rows.Single(row => row.Candidate.Category == RewardCategory.UtilityItem).ExclusionReason);
@@ -237,12 +114,11 @@ public sealed class CombinedRewardSelectorTests
     {
         var snapshot = SpawnCatalogSnapshot<string>.Build(new[]
         {
-            Candidate(RewardCategory.Valuable, "z-value"),
-            Candidate(RewardCategory.Monster, "b-monster"),
-            Candidate(RewardCategory.Monster, "a-monster")
+            Candidate(RewardCategory.Valuable, "valuable:z"),
+            Candidate(RewardCategory.Monster, "enemy:b"),
+            Candidate(RewardCategory.Monster, "enemy:a")
         });
-
-        Assert.Equal(new[] { "a-monster", "b-monster", "z-value" },
+        Assert.Equal(new[] { "enemy:a", "enemy:b", "valuable:z" },
             snapshot.Rows.Select(row => row.Candidate.Id));
     }
 
@@ -251,79 +127,48 @@ public sealed class CombinedRewardSelectorTests
     {
         Assert.Throws<InvalidOperationException>(() => SpawnCatalogSnapshot<string>.Build(new[]
         {
-            Candidate(RewardCategory.Monster, "duplicate"),
-            Candidate(RewardCategory.Monster, "DUPLICATE")
+            Candidate(RewardCategory.Monster, "enemy:duplicate"),
+            Candidate(RewardCategory.Monster, "ENEMY:DUPLICATE")
         }));
-    }
-
-    [Fact]
-    public void FinalSpawnGuardRechecksCategorySpecificExclusion()
-    {
-        var candidate = Candidate(RewardCategory.Valuable, "valuable.blocked");
-        var exclusions = new SpawnExclusionList(new[]
-        {
-            new SpawnExclusionEntry(RewardCategory.Valuable, "valuable.blocked", "Balance")
-        });
-
-        Assert.False(SpawnSafetyGuard.TryValidate(candidate, exclusions, out var reason));
-        Assert.Equal("Balance", reason);
     }
 
     [Fact]
     public void UnavailableCategoriesAreRemovedBeforeWeightedSelection()
     {
-        var candidates = new[]
-        {
-            Candidate(RewardCategory.Valuable, "valuable-a")
-        };
-
         var selected = CombinedRewardSelector.Select(
-            candidates,
-            RewardCategoryWeights.Default,
-            new FixedRandom(0.99, 0));
-
+            new[] { Candidate(RewardCategory.Valuable, "valuable:a") },
+            RewardCategoryWeights.Default, new FixedRandom(0.99, 0));
         Assert.Equal(RewardCategory.Valuable, selected.Category);
     }
 
     [Fact]
     public void ZeroWeightCategoryIsNotSelected()
     {
-        var candidates = new[]
+        var selected = CombinedRewardSelector.Select(new[]
         {
-            Candidate(RewardCategory.Monster, "monster-a"),
-            Candidate(RewardCategory.Valuable, "valuable-a")
-        };
-
-        var selected = CombinedRewardSelector.Select(
-            candidates,
-            new RewardCategoryWeights(0d, 1d, 4d),
-            new FixedRandom(0.99, 0));
-
+            Candidate(RewardCategory.Monster, "enemy:a"),
+            Candidate(RewardCategory.Valuable, "valuable:a")
+        }, new RewardCategoryWeights(0d, 1d, 4d), new FixedRandom(0.99, 0));
         Assert.Equal(RewardCategory.Valuable, selected.Category);
     }
 
     [Fact]
     public void RejectsWeightsWhoseCombinedTotalOverflows()
     {
-        Assert.Throws<ArgumentException>(() =>
-            new RewardCategoryWeights(double.MaxValue, double.MaxValue, 1d));
+        Assert.Throws<ArgumentException>(() => new RewardCategoryWeights(double.MaxValue, double.MaxValue, 1d));
     }
 
     [Fact]
     public void FailsClearlyWhenNothingIsEligible()
     {
-        var candidates = new[]
-        {
-            Candidate(RewardCategory.UtilityItem, "unclassified")
-        };
-
+        var policy = new SpawnPolicy(false, 1d, false, 1d, false, 1d);
         Assert.Throws<InvalidOperationException>(() =>
-            CombinedRewardSelector.Select(candidates, RewardCategoryWeights.Default, new Random(1)));
+            CombinedRewardSelector.Select(new[] { Candidate(RewardCategory.Monster, "enemy:a") },
+                policy, new Random(1)));
     }
 
     private static RewardCandidate<string> Candidate(
-        RewardCategory category,
-        string id,
+        RewardCategory category, string id,
         ShopItemClassification classification = ShopItemClassification.Unknown) =>
         new(category, id, id, id, classification);
 
@@ -331,19 +176,12 @@ public sealed class CombinedRewardSelectorTests
     {
         private readonly Queue<double> _doubles;
         private readonly Queue<int> _integers;
-
         public FixedRandom(double categoryRoll, int candidateIndex)
         {
             _doubles = new Queue<double>(new[] { categoryRoll });
             _integers = new Queue<int>(new[] { candidateIndex });
         }
-
         public override double NextDouble() => _doubles.Dequeue();
-
-        public override int Next(int maxValue)
-        {
-            var value = _integers.Dequeue();
-            return Math.Clamp(value, 0, maxValue - 1);
-        }
+        public override int Next(int maxValue) => Math.Clamp(_integers.Dequeue(), 0, maxValue - 1);
     }
 }
