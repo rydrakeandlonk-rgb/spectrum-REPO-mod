@@ -16,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.1.2";
+    public const string PluginVersion = "0.1.3";
 
     internal static ManualLogSource Log { get; private set; } = null!;
     internal static SpawnCatalogSnapshot<RepoSpawnTarget>? Catalog { get; set; }
