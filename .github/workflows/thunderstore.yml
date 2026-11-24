@@ -58,7 +58,7 @@ jobs:
           manifest["version_number"] = os.environ["PACKAGE_VERSION"]
           with open(path, "w", encoding="utf-8") as f:
               json.dump(manifest, f, indent=2)
-              f.write("\\n")
+              f.write("\n")
           PY
           cd dist/Spectrum_REPO_Mod
           zip -r "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" .
