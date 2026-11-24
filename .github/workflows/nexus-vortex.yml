@@ -1,0 +1,137 @@
+name: Build and publish Spectrum R.E.P.O. Mod
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_to_nexus:
+        description: "Upload this verified build to the existing Nexus Mods file"
+        required: true
+        type: boolean
+        default: false
+      nexus_file_id:
+        description: "Existing Nexus Mods file ID for mod 400 (required only when publishing)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-mod-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.verify.outputs.version }}
+      package: ${{ steps.verify.outputs.package }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read package version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(python3 -c 'import json; print(json.load(open("manifest.json", encoding="utf-8"))["version_number"])')"
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building Spectrum R.E.P.O. Mod $VERSION"
+
+      - name: Restore dependencies
+        run: dotnet restore ./src/SpectrumRepoMod.csproj
+
+      - name: Build plugin
+        run: dotnet build ./src/SpectrumRepoMod.csproj --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test ./tests/SpectrumRepoMod.Tests.csproj --configuration Release
+
+      - name: Assemble and verify install ZIP
+        id: verify
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          stage="dist/Spectrum_REPO_Mod"
+          test -f "$stage/BepInEx/plugins/SpectrumRepoMod.dll"
+          test -f "$stage/manifest.json"
+          test -f "$stage/README.md"
+          test -f "$stage/CHANGELOG.md"
+          test -f "$stage/icon.png"
+          python3 - <<'PY'
+          import json, os
+          path = "dist/Spectrum_REPO_Mod/manifest.json"
+          with open(path, encoding="utf-8") as f:
+              manifest = json.load(f)
+          manifest["version_number"] = os.environ["PACKAGE_VERSION"]
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\n")
+          PY
+          package="dist/Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip"
+          (cd "$stage" && zip -qr "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" .)
+          listing="$(mktemp)"
+          unzip -Z1 "$package" > "$listing"
+          grep -Eq '(^|/)SpectrumRepoMod[.]dll$' "$listing"
+          grep -Eq '(^|/)manifest[.]json$' "$listing"
+          if grep -Eq '(^|/)config[.]cfg$|(^|/)config[.]json$' "$listing"; then
+            echo "::error::Package must not contain local configuration or credentials."
+            exit 1
+          fi
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+          echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Verified install package: $package"
+
+      - name: Upload installable package artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spectrum_REPO_Mod-${{ steps.verify.outputs.version }}
+          path: ${{ steps.verify.outputs.package }}
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish verified build to Nexus Mods
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus }}
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Nexus publishing inputs
+        env:
+          NEXUS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
+          NEXUS_FILE_ID: ${{ inputs.nexus_file_id }}
+        run: |
+          test -n "$NEXUS_API_KEY" || { echo "::error::Missing repository secret NEXUSMODS_API_KEY."; exit 1; }
+          test -n "$NEXUS_FILE_ID" || { echo "::error::Enter the existing Nexus file ID for mod 400."; exit 1; }
+
+      - name: Download verified package
+        uses: actions/download-artifact@v4
+        with:
+          name: Spectrum_REPO_Mod-${{ needs.build.outputs.version }}
+          path: ./publish-package
+
+      - name: Upload version to Nexus Mods
+        uses: Nexus-Mods/upload-action@98532f7670c27cbecc78fae03fa3e278147827e2
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ inputs.nexus_file_id }}
+          filename: ./publish-package/Spectrum_REPO_Mod-${{ needs.build.outputs.version }}.zip
+          version: ${{ needs.build.outputs.version }}
+          display_name: Spectrum R.E.P.O. Mod
+          update_mod_version: true
