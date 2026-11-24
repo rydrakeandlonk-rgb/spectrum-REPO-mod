@@ -9,30 +9,13 @@
     <Version>0.1.0</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
-    <REPOGamePath Condition="'$(REPOGamePath)' == ''">$(REPO_GAME_PATH)</REPOGamePath>
-    <REPOManagedPath>$(REPOGamePath)/REPO_Data/Managed</REPOManagedPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="R.E.P.O.GameLibs.Steam" Version="0.4.4-ngd.0" ExcludeAssets="runtime" />
     <PackageReference Include="Zehs.REPOLib" Version="4.5.1" ExcludeAssets="runtime" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Assembly-CSharp" HintPath="$(REPOManagedPath)/Assembly-CSharp.dll" Private="false" />
-    <Reference Include="Photon3Unity3D" HintPath="$(REPOManagedPath)/Photon3Unity3D.dll" Private="false" />
-    <Reference Include="PhotonRealtime" HintPath="$(REPOManagedPath)/PhotonRealtime.dll" Private="false" />
-    <Reference Include="PhotonUnityNetworking" HintPath="$(REPOManagedPath)/PhotonUnityNetworking.dll" Private="false" />
-    <Reference Include="UnityEngine" HintPath="$(REPOManagedPath)/UnityEngine.dll" Private="false" />
-    <Reference Include="UnityEngine.CoreModule" HintPath="$(REPOManagedPath)/UnityEngine.CoreModule.dll" Private="false" />
-  </ItemGroup>
-
-  <Target Name="ValidateRepoGamePath" BeforeTargets="ResolveReferences">
-    <Error Condition="'$(REPOGamePath)' == ''"
-           Text="Set REPOGamePath (or REPO_GAME_PATH) to your local R.E.P.O. installation directory." />
-    <Error Condition="!Exists('$(REPOManagedPath)/Assembly-CSharp.dll')"
-           Text="Could not find Assembly-CSharp.dll under $(REPOManagedPath). Check REPOGamePath." />
-  </Target>
 
   <Target Name="StageThunderstorePackage" AfterTargets="Build">
     <PropertyGroup>
