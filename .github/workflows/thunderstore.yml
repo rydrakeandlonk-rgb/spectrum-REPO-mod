@@ -1,0 +1,121 @@
+name: Build and publish Thunderstore package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish this build to Thunderstore (requires namespace and TCLI_AUTH_TOKEN)
+        required: true
+        type: boolean
+        default: false
+      namespace:
+        description: Exact Thunderstore team namespace
+        required: false
+        type: string
+      version:
+        description: Package version (for example 0.1.1)
+        required: false
+        type: string
+        default: 0.1.0
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore ./src/SpectrumRepoMod.csproj
+
+      - name: Build plugin
+        run: dotnet build ./src/SpectrumRepoMod.csproj --configuration Release --no-restore
+
+      - name: Run selection tests
+        run: dotnet test ./tests/SpectrumRepoMod.Tests.csproj --configuration Release
+
+      - name: Assemble Thunderstore ZIP
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ inputs.version || '0.1.0' }}
+        run: |
+          set -euo pipefail
+          test -f dist/Spectrum_REPO_Mod/BepInEx/plugins/SpectrumRepoMod.dll
+          mkdir -p dist
+          python3 - <<'PY'
+          import json, os
+          path = "dist/Spectrum_REPO_Mod/manifest.json"
+          with open(path, encoding="utf-8") as f:
+              manifest = json.load(f)
+          manifest["version_number"] = os.environ["PACKAGE_VERSION"]
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\\n")
+          PY
+          cd dist/Spectrum_REPO_Mod
+          zip -r "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" .
+
+      - name: Upload installable package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spectrum_REPO_Mod-${{ inputs.version || '0.1.0' }}
+          path: dist/Spectrum_REPO_Mod-${{ inputs.version || '0.1.0' }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate publishing inputs
+        env:
+          THUNDERSTORE_NAMESPACE: ${{ inputs.namespace }}
+          TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
+        run: |
+          test -n "$THUNDERSTORE_NAMESPACE" || { echo "Thunderstore namespace is required to publish."; exit 1; }
+          test -n "$TCLI_AUTH_TOKEN" || { echo "Missing repository secret TCLI_AUTH_TOKEN."; exit 1; }
+
+      - name: Check out package metadata
+        uses: actions/checkout@v4
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Spectrum_REPO_Mod-${{ inputs.version || '0.1.0' }}
+          path: ./publish-package
+
+      - name: Configure Thunderstore CLI
+        shell: bash
+        env:
+          THUNDERSTORE_NAMESPACE: ${{ inputs.namespace }}
+        run: |
+          cat > thunderstore.toml <<EOF
+          [general]
+          repository = "https://thunderstore.io"
+
+          [publish]
+          communities = ["repo"]
+
+          [publish.categories]
+          repo = ["mods"]
+          EOF
+          dotnet tool install --global tcli
+
+      - name: Publish to Thunderstore
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
+        run: |
+          tcli publish --file "./publish-package/Spectrum_REPO_Mod-${{ inputs.version || '0.1.0' }}.zip" --package-namespace "${{ inputs.namespace }}" --package-name "Spectrum_REPO_Mod" --package-version "${{ inputs.version || '0.1.0' }}" --config-path "./thunderstore.toml"
