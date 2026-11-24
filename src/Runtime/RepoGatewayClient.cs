@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -19,7 +20,6 @@ public sealed class RepoGatewayClient
     private readonly CancellationTokenSource _cancellation = new();
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private ClientWebSocket? _socket;
-    private bool _cataloguePublished;
     private readonly ConcurrentQueue<Action> _mainThreadActions = new();
 
     public RepoGatewayClient(ConfigFile config)
@@ -108,7 +108,6 @@ public sealed class RepoGatewayClient
                 _socket = socket;
                 await socket.ConnectAsync(builder.Uri, cancellationToken);
                 Plugin.Log.LogInfo("Connected to the Spectrum R.E.P.O. gateway.");
-                _cataloguePublished = false;
                 await ReceiveLoop(socket, cancellationToken);
             }
             catch (OperationCanceledException) { break; }
@@ -131,45 +130,55 @@ public sealed class RepoGatewayClient
         var buffer = new byte[16 * 1024];
         while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
         {
-            var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
-            if (result.MessageType == WebSocketMessageType.Close) break;
-            var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            GatewayMessage? envelope;
-            try { envelope = JsonUtility.FromJson<GatewayMessage>(message); }
-            catch { continue; }
-            if (envelope == null) continue;
+            using var messageStream = new MemoryStream();
+            WebSocketReceiveResult result;
+            do
+            {
+                result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+                if (result.MessageType == WebSocketMessageType.Close) return;
+                messageStream.Write(buffer, 0, result.Count);
+                if (messageStream.Length > 4 * 1024 * 1024)
+                    throw new InvalidOperationException("Gateway message exceeded the 4 MB safety limit.");
+            } while (!result.EndOfMessage);
 
-            if (envelope.type == "session.ready")
-            {
-                _mainThreadActions.Enqueue(() =>
-                {
-                    ApplyRemotePolicy(envelope.config);
-                    PublishCatalogue();
-                    Plugin.Log.LogInfo("Spectrum R.E.P.O. session registered with the gateway.");
-                });
-            }
-            else if (envelope.type == "repo.config.update")
-            {
-                _mainThreadActions.Enqueue(() =>
-                {
-                    ApplyRemotePolicy(envelope.config);
-                    PublishCatalogue();
-                });
-            }
-            else if (envelope.type == "repo.config.catalogue.request")
-            {
-                _mainThreadActions.Enqueue(PublishCatalogue);
-            }
-            else if (envelope.type == "repo.catalogue.ack" && envelope.ok)
-            {
-                _cataloguePublished = true;
-                Plugin.Log.LogInfo("Live R.E.P.O. catalogue published to Control Center.");
-            }
-            else if (envelope.type == "repo.spawn.request")
-            {
-                _mainThreadActions.Enqueue(() => SpawnRequested?.Invoke(
-                    envelope.category ?? "", envelope.request_id ?? ""));
-            }
+            var message = Encoding.UTF8.GetString(messageStream.ToArray());
+            _mainThreadActions.Enqueue(() => HandleGatewayMessage(message));
+        }
+    }
+
+    private void HandleGatewayMessage(string message)
+    {
+        GatewayMessage? envelope;
+        try { envelope = JsonUtility.FromJson<GatewayMessage>(message); }
+        catch (Exception error)
+        {
+            Plugin.Log.LogWarning("Could not parse a Spectrum gateway message: " + error.Message);
+            return;
+        }
+        if (envelope == null) return;
+
+        if (envelope.type == "session.ready")
+        {
+            ApplyRemotePolicy(envelope.config);
+            PublishCatalogue();
+            Plugin.Log.LogInfo("Spectrum R.E.P.O. session registered with the gateway.");
+        }
+        else if (envelope.type == "repo.config.update")
+        {
+            ApplyRemotePolicy(envelope.config);
+            PublishCatalogue();
+        }
+        else if (envelope.type == "repo.config.catalogue.request")
+        {
+            PublishCatalogue();
+        }
+        else if (envelope.type == "repo.catalogue.ack" && envelope.ok)
+        {
+            Plugin.Log.LogInfo("Live R.E.P.O. catalogue published to Control Center.");
+        }
+        else if (envelope.type == "repo.spawn.request")
+        {
+            SpawnRequested?.Invoke(envelope.category ?? "", envelope.request_id ?? "");
         }
     }
 
