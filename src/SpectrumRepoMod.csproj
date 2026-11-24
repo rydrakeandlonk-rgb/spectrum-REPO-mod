@@ -38,9 +38,11 @@
     <PropertyGroup>
       <PackageStage>$(MSBuildProjectDirectory)/../dist/Spectrum_REPO_Mod</PackageStage>
     </PropertyGroup>
-    <MakeDir Directories="$(PackageStage)/plugins" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStage)/plugins" />
+    <MakeDir Directories="$(PackageStage)/BepInEx/plugins" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStage)/BepInEx/plugins" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)/../manifest.json" DestinationFolder="$(PackageStage)" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)/../README.md" DestinationFolder="$(PackageStage)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../CHANGELOG.md" DestinationFolder="$(PackageStage)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../icon.png" DestinationFolder="$(PackageStage)" />
   </Target>
 </Project>

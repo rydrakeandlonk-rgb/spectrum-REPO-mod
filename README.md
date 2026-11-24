@@ -1,59 +1,69 @@
 # Spectrum R.E.P.O. Mod
 
-A BepInEx plugin that connects R.E.P.O. multiplayer sessions to Spectrum's existing Game Mods infrastructure.
+Spectrum's host-side R.E.P.O. integration test plugin. It connects one Spectrum broadcaster's game instance to the Spectrum Game Mods gateway, publishes the live REPOLib catalogue, receives Control Center test requests, and executes approved category tests on the current lobby host.
 
-## Installation
+**This is an early testing build. Twitch Channel Point redemptions and non-host multiplayer forwarding are not enabled.** Manual tests are sent from the admin-only R.E.P.O. page in Spectrum Control Center.
 
-Install through Thunderstore Mod Manager (or another compatible manager). The package declares its runtime dependencies so the manager can install them:
+## Requirements
 
-- **BepInExPack** — the standard R.E.P.O. BepInEx loader. Spectrum does not bundle or recreate it.
-- **REPOLib** — used for supported networked enemy, item and valuable discovery/spawning APIs.
+- R.E.P.O.
+- BepInEx 5 (installed automatically by Thunderstore Mod Manager)
+- REPOLib (installed automatically by Thunderstore Mod Manager)
+- A Spectrum streamer account with an administrator-generated R.E.P.O. host credential
 
-Do not copy BepInEx files into this repository or package them inside the Spectrum mod.
+## Install
 
-## Architecture
+Install **Spectrum R.E.P.O. Mod** through Thunderstore Mod Manager. Launch R.E.P.O. once so BepInEx creates the plugin configuration file, then close the game.
 
-Spectrum's existing Cloudflare services remain responsible for Twitch/EventSub authentication, member access, reward configuration, broadcaster-scoped host sessions, delivery, retries and redemption deduplication.
+## Connect your Spectrum channel
 
-This repository owns only the game plugin:
+1. Open Spectrum Control Center and go to **Games → R.E.P.O.**
+2. Find your broadcaster row and select **Generate host credential**.
+3. Copy the gateway URL and one-time host token shown in the page.
+4. Open `BepInEx/config/com.spectrum.repomod.cfg`.
+5. Under `[Spectrum Gateway]`, set `GatewayUrl` and `HostToken` to the values from Control Center.
+6. Save the file and launch R.E.P.O. as the lobby host.
 
-1. Each participating player's mod connects to that player's broadcaster-scoped Spectrum Game Mods session.
-2. A redemption is delivered to the corresponding player's connected mod.
-3. If that player is not the R.E.P.O. lobby host, the mod forwards the typed request through the game's multiplayer networking to the current Master Client.
-4. The Master Client validates the request, resolves the requested content from the local game catalogue and performs the spawn once.
-5. The game networking layer replicates the spawned entity/item to the lobby.
+The token is private. Do not post it in chat, screenshots, logs or public support requests. If it is lost, an administrator can generate a replacement; the previous token is invalidated.
 
-The Spectrum connection identity and the R.E.P.O. lobby identity are deliberately separate. Multiple Spectrum streamers can participate in one R.E.P.O. lobby without sharing credentials or collapsing their broadcaster-scoped sessions.
+## Test in game
 
-## Planned redemption types
+1. Start a run as the R.E.P.O. lobby host.
+2. In Control Center → Games → R.E.P.O., refresh the page.
+3. Confirm your channel shows **Connected**, **Run active**, **Lobby host**, and catalogue counts.
+4. Use **Test monster**, **Test utility item**, and **Test valuable** one at a time.
+5. Check the game and the session's recent command result in Control Center.
 
-- Enemy spawn
-- Shop / utility item spawn
-- Valuable spawn
+The current test build only executes a manual test on the authenticated mod connection when that instance is the active lobby host. If no run is active, the host is not authoritative, or a category has no eligible entries, the request is rejected and reported.
 
-The initial implementation will use the game's host-authoritative networking path. No client may independently spawn the same redemption. Every request carries a stable command ID so the host can reject duplicates and the gateway can receive an acknowledgement only after the game action completes.
+## Safety and catalogue rules
 
-## Development
+- The utility pool is allow-list based: only explicitly recognized non-weapon utility classifications are eligible.
+- Unknown shop-item types fail closed.
+- The global weapon exclusion is enforced in the game-side policy and cannot be removed through configuration.
+- Category exclusions and category enable/weight settings are managed in Control Center.
+- The final policy is checked again immediately before a spawn.
 
-This project targets the BepInEx 5 / Mono plugin environment used by R.E.P.O.
+## Current limitations
 
-Set the `REPOGamePath` MSBuild property to your local R.E.P.O. installation directory, or set the `REPO_GAME_PATH` environment variable. The game assemblies are referenced from:
+- Twitch reward delivery is deliberately disabled pending end-to-end validation.
+- Non-host participant forwarding to the lobby Master Client is not implemented in this test build.
+- The live game adapter must be compiled and verified against the current local R.E.P.O. assemblies before the first package is considered validated.
+- Modded multiplayer catalogues depend on the content being installed on the authoritative host.
 
+## Troubleshooting
+
+- **No config file:** launch the game once with BepInEx installed, then close it.
+- **Gateway stays offline:** check the URL/token values, confirm the credential has not been rotated, and inspect `BepInEx/LogOutput.log`.
+- **Connected but no catalogue:** start a run and refresh Control Center. The plugin waits for the game's run registries before publishing.
+- **Test rejected:** confirm the active run is hosted by the connected broadcaster and that the selected category has eligible entries.
+
+## Development build
+
+On a Windows machine with R.E.P.O. installed:
+
+```powershell
+.\build-thunderstore.ps1 -GamePath "C:\Program Files (x86)\Steam\steamapps\common\REPO"
 ```
-$(REPOGamePath)/REPO_Data/Managed
-```
 
-Do not commit game DLLs, BepInEx DLLs, host tokens, service secrets or local profile data.
-
-The combined-reward selection core, immutable catalogue snapshot, category policy and final spawn guard have isolated automated tests. The selector accepts a Random instance; retry-safe selection still needs the gateway/host layer to persist a chosen result against each command ID. The live REPOLib catalogue adapter and host-only spawn executor are now in source. The plugin waits for the active run registries, builds a live catalogue snapshot, and admits only explicitly recognized non-combat shop utility categories. Unknown item classifications fail closed. The game-specific multiplayer forwarding, gateway connection and Control Center catalogue publication are still under implementation. The plugin is not ready for public distribution until it has been built against the current game assemblies and tested in both host and client roles.
-
-## Related repository
-
-The shared gateway, Event Hub routing and Control Center integration live in [spectrum-cloudflare](https://github.com/rydrakeandlonk-rgb/spectrum-cloudflare). This repository must not implement a second Twitch gateway or duplicate the Control Center's member/authentication logic.
-
-
-## Reward selection implementation
-
-The combined reward selector lives in `src/Rewards/CombinedRewardSelector.cs`. It selects one category and one candidate using a stable command-ID seed. Retries therefore resolve to the same result when the category weights and ordered catalogue snapshot are unchanged.
-
-The game adapter must build sorted, validated candidate lists from the current run's REPOLib registries. In particular, the utility pool is limited to supported non-weapon shop utilities; the selector does not accept arbitrary prefab names or decide catalogue eligibility itself. See `docs/REWARD-SELECTOR-VERIFICATION.md` for the test matrix.
+The script compiles against the local game-managed assemblies and creates `dist/Spectrum_REPO_Mod-0.1.0.zip`. Game assemblies are not included in the package or source repository.
