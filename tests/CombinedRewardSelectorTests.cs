@@ -105,6 +105,68 @@ public sealed class CombinedRewardSelectorTests
     }
 
     [Fact]
+    public void CatalogueSnapshotListsAllowedAndExcludedRows()
+    {
+        var candidates = new[]
+        {
+            Candidate(RewardCategory.Monster, "monster-z"),
+            Candidate(RewardCategory.UtilityItem, "utility-unknown"),
+            Candidate(RewardCategory.UtilityItem, "utility-safe", ShopItemClassification.Utility),
+            Candidate(RewardCategory.Valuable, "valuable-a")
+        };
+        var exclusions = new SpawnExclusionList(new[]
+        {
+            new SpawnExclusionEntry(RewardCategory.Monster, "monster-z", "Balance")
+        });
+
+        var snapshot = SpawnCatalogSnapshot<string>.Build(candidates, exclusions);
+
+        Assert.Equal(4, snapshot.TotalCount);
+        Assert.Equal(2, snapshot.AllowedCount);
+        Assert.Equal(2, snapshot.ExcludedCount);
+        Assert.Equal("Balance", snapshot.Rows.Single(row => row.Candidate.Id == "monster-z").ExclusionReason);
+        Assert.Equal("Shop item has not been classified",
+            snapshot.Rows.Single(row => row.Candidate.Id == "utility-unknown").ExclusionReason);
+    }
+
+    [Fact]
+    public void CatalogueSnapshotSortsRowsDeterministically()
+    {
+        var snapshot = SpawnCatalogSnapshot<string>.Build(new[]
+        {
+            Candidate(RewardCategory.Valuable, "z-value"),
+            Candidate(RewardCategory.Monster, "b-monster"),
+            Candidate(RewardCategory.Monster, "a-monster")
+        });
+
+        Assert.Equal(new[] { "a-monster", "b-monster", "z-value" },
+            snapshot.Rows.Select(row => row.Candidate.Id));
+    }
+
+    [Fact]
+    public void CatalogueSnapshotRejectsDuplicateIdsWithinCategory()
+    {
+        Assert.Throws<InvalidOperationException>(() => SpawnCatalogSnapshot<string>.Build(new[]
+        {
+            Candidate(RewardCategory.Monster, "duplicate"),
+            Candidate(RewardCategory.Monster, "DUPLICATE")
+        }));
+    }
+
+    [Fact]
+    public void FinalSpawnGuardRechecksCategorySpecificExclusion()
+    {
+        var candidate = Candidate(RewardCategory.Valuable, "valuable.blocked");
+        var exclusions = new SpawnExclusionList(new[]
+        {
+            new SpawnExclusionEntry(RewardCategory.Valuable, "valuable.blocked", "Balance")
+        });
+
+        Assert.False(SpawnSafetyGuard.TryValidate(candidate, exclusions, out var reason));
+        Assert.Equal("Balance", reason);
+    }
+
+    [Fact]
     public void UnavailableCategoriesAreRemovedBeforeWeightedSelection()
     {
         var candidates = new[]

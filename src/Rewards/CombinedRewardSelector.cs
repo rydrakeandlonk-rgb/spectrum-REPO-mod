@@ -18,9 +18,7 @@ public static class CombinedRewardSelector
         exclusions ??= SpawnExclusionList.Default;
 
         var eligible = source
-            .Where(candidate => candidate != null &&
-                candidate.IsEligible &&
-                !exclusions.IsExcluded(candidate.Category, candidate.Id, candidate.Tags))
+            .Where(candidate => SpawnSafetyGuard.TryValidate(candidate, exclusions, out _))
             .GroupBy(candidate => candidate.Category)
             .ToDictionary(group => group.Key, group => group.ToArray());
 
