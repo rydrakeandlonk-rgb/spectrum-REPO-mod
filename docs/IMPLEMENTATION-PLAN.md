@@ -34,9 +34,11 @@ The game networking event transport also needs a compatibility test. REPOLib exp
 
 ## Spawn scope
 
-- Enemy catalogue entries.
-- Non-weapon utility items only.
-- Valuables.
+- Enemy catalogue entries, sourced from REPOLib's current enemy registry.
+- Eligible non-weapon shop utility items, sourced from REPOLib's current item registry and filtered by the game adapter's explicit eligibility classifier.
+- Valuables, sourced from REPOLib's current valuable registry.
+
+The adapter should use the current REPOLib registry properties (`Enemies.AllEnemies`, `Items.AllItems`, and `Valuables.AllValuables`) rather than maintaining a static catalogue of ordinary vanilla content. Build the candidate snapshot only after the run and content registries are ready. The utility-item eligibility classifier must be conservative: only known supported utility entries enter the pool; unsupported or ambiguous entries are excluded and surfaced in diagnostics.
 
 Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and bounded quantities/cooldowns. The initial scope excludes weapons.
 

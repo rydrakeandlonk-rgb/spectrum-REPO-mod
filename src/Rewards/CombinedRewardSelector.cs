@@ -21,8 +21,9 @@ namespace SpectrumRepoMod.Rewards
             ValidateWeight(Monster, nameof(Monster));
             ValidateWeight(UtilityItem, nameof(UtilityItem));
             ValidateWeight(Valuable, nameof(Valuable));
-            if (Monster + UtilityItem + Valuable <= 0.0)
-                throw new ArgumentException("At least one reward category must have a positive weight.");
+            double total = Monster + UtilityItem + Valuable;
+            if (double.IsNaN(total) || double.IsInfinity(total) || total <= 0.0)
+                throw new ArgumentException("The combined reward weights must have a finite positive total.");
         }
 
         private static void ValidateWeight(double value, string name)
