@@ -75,6 +75,13 @@ public sealed class CombinedRewardSelectorTests
     }
 
     [Fact]
+    public void RejectsWeightsWhoseCombinedTotalOverflows()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new RewardCategoryWeights(double.MaxValue, double.MaxValue, 1d));
+    }
+
+    [Fact]
     public void FailsClearlyWhenNothingIsEligible()
     {
         var candidates = new[]

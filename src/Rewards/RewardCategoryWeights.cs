@@ -14,8 +14,9 @@ public sealed class RewardCategoryWeights
         ValidateWeight(utilityItem, nameof(utilityItem));
         ValidateWeight(valuable, nameof(valuable));
 
-        if (monster + utilityItem + valuable <= 0d)
-            throw new ArgumentException("At least one reward category must have a positive weight.");
+        var total = monster + utilityItem + valuable;
+        if (double.IsNaN(total) || double.IsInfinity(total) || total <= 0d)
+            throw new ArgumentException("Category weights must have a finite positive total.");
 
         Monster = monster;
         UtilityItem = utilityItem;
