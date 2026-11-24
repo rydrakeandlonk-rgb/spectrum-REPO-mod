@@ -101,12 +101,22 @@ jobs:
         shell: bash
         env:
           THUNDERSTORE_NAMESPACE: ${{ inputs.namespace }}
+          PACKAGE_VERSION: ${{ inputs.version || '0.1.0' }}
         run: |
           cat > thunderstore.toml <<EOF
-          [general]
-          repository = "https://thunderstore.io"
+          [config]
+          schemaVersion = "0.0.1"
+
+          [package]
+          namespace = "$THUNDERSTORE_NAMESPACE"
+          name = "Spectrum_REPO_Mod"
+          versionNumber = "$PACKAGE_VERSION"
+          description = "Early host-side testing integration for Spectrum R.E.P.O. reward spawns. Twitch redemptions are not enabled yet."
+          websiteUrl = "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod"
+          containsNsfwContent = false
 
           [publish]
+          repository = "https://thunderstore.io"
           communities = ["repo"]
 
           [publish.categories]
