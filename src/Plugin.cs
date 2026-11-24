@@ -19,6 +19,7 @@ public sealed class Plugin : BaseUnityPlugin
     internal static SpawnCatalogSnapshot<RepoSpawnTarget>? Catalog { get; private set; }
     internal static SpawnPolicy SpawnPolicy { get; set; } = SpawnPolicy.Default;
     internal static RepoSpawnExecutor SpawnExecutor { get; } = new();
+    private RepoGatewayClient? _gateway;
 
     private void Awake()
     {
@@ -41,10 +42,35 @@ public sealed class Plugin : BaseUnityPlugin
             Log.LogInfo(
                 $"R.E.P.O. catalogue ready: {Catalog.TotalCount} entries, " +
                 $"{Catalog.AllowedCount} eligible, {Catalog.ExcludedCount} excluded.");
+            _gateway = new RepoGatewayClient(Config);
+            _gateway.Start();
+            StartCoroutine(PublishGatewayState());
         }
         catch (System.Exception error)
         {
             Log.LogError($"Could not build the R.E.P.O. catalogue: {error.Message}");
         }
+    }
+
+    private IEnumerator PublishGatewayState()
+    {
+        var nextPing = 0f;
+        while (true)
+        {
+            var runActive = RunManager.instance != null && LevelGenerator.Instance != null;
+            var isMaster = runActive && SemiFunc.IsMasterClientOrSingleplayer();
+            _gateway?.SendSessionState(runActive, isMaster);
+            if (Time.unscaledTime >= nextPing)
+            {
+                _gateway?.SendPing();
+                nextPing = Time.unscaledTime + 15f;
+            }
+            yield return new WaitForSeconds(5f);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        _gateway?.Stop();
     }
 }
