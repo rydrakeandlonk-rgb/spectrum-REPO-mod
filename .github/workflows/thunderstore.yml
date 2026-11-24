@@ -128,4 +128,4 @@ jobs:
         env:
           TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
         run: |
-          tcli publish --file "./publish-package/Spectrum_REPO_Mod-${{ inputs.version || '0.1.0' }}.zip" --package-namespace "${{ inputs.namespace }}" --package-name "Spectrum_REPO_Mod" --package-version "${{ inputs.version || '0.1.0' }}" --config-path "./thunderstore.toml"
+          tcli publish --file "./publish-package/Spectrum_REPO_Mod-${{ inputs.version || '0.1.0' }}.zip" --token "$TCLI_AUTH_TOKEN" --config-path "./thunderstore.toml"
