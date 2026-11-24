@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -19,6 +20,7 @@ public sealed class RepoGatewayClient
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private ClientWebSocket? _socket;
     private bool _cataloguePublished;
+    private readonly ConcurrentQueue<Action> _mainThreadActions = new();
 
     public RepoGatewayClient(ConfigFile config)
     {
@@ -48,6 +50,15 @@ public sealed class RepoGatewayClient
         _cancellation.Cancel();
         try { _socket?.Abort(); } catch { }
         try { _socket?.Dispose(); } catch { }
+    }
+
+    public void PumpMainThread()
+    {
+        while (_mainThreadActions.TryDequeue(out var action))
+        {
+            try { action(); }
+            catch (Exception error) { Plugin.Log.LogError("Gateway main-thread action failed: " + error.Message); }
+        }
     }
 
     public void SendSessionState(bool runActive, bool isMasterClient)
@@ -115,13 +126,16 @@ public sealed class RepoGatewayClient
 
             if (envelope.type == "session.ready")
             {
-                ApplyRemotePolicy(envelope.config);
-                PublishCatalogue();
-                Plugin.Log.LogInfo("Spectrum R.E.P.O. session registered with the gateway.");
+                _mainThreadActions.Enqueue(() =>
+                {
+                    ApplyRemotePolicy(envelope.config);
+                    PublishCatalogue();
+                    Plugin.Log.LogInfo("Spectrum R.E.P.O. session registered with the gateway.");
+                });
             }
             else if (envelope.type == "repo.config.catalogue.request")
             {
-                PublishCatalogue();
+                _mainThreadActions.Enqueue(PublishCatalogue);
             }
             else if (envelope.type == "repo.catalogue.ack" && envelope.ok)
             {
@@ -195,8 +209,8 @@ public sealed class RepoGatewayClient
             entries = entries.ToArray(),
             session = new CatalogueSession
             {
-                run_active = RunManager.instance != null && LevelGenerator.Instance != null,
-                is_master_client = RunManager.instance != null && SemiFunc.IsMasterClientOrSingleplayer()
+                run_active = false,
+                is_master_client = false
             }
         }, _cancellation.Token);
     }

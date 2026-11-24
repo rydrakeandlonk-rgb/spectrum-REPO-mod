@@ -59,6 +59,7 @@ public sealed class Plugin : BaseUnityPlugin
         {
             var runActive = RunManager.instance != null && LevelGenerator.Instance != null;
             var isMaster = runActive && SemiFunc.IsMasterClientOrSingleplayer();
+            _gateway?.PumpMainThread();
             _gateway?.SendSessionState(runActive, isMaster);
             if (Time.unscaledTime >= nextPing)
             {
