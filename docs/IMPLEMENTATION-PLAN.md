@@ -60,7 +60,9 @@ Do not expose unrestricted arbitrary prefab names. Use explicit allowlists and b
 - [x] Add a shared runtime spawn policy for category enable/disable, relative weights, and No Spawn List enforcement.
 - [x] Add one final spawn safety guard for both catalogue filtering and the host's immediate pre-spawn validation.
 - [x] Add isolated automated tests for selection, category fallback, category weights, category-scoped exclusions, catalogue snapshots and final spawn validation.
-- Build against the installed game's managed assemblies.
+- [x] Add a live REPOLib catalogue adapter for enemies, shop items and valuables. Utility items are admitted only when their item category is explicitly recognized as non-combat; unknown and unsupported entries fail closed.
+- [x] Add a host-only REPOLib spawn executor for all three reward categories. It revalidates the shared policy immediately before the game API call and requires a successful game spawn result.
+- Build the full plugin against the installed game's managed assemblies; CI currently covers the isolated policy/selector core only.
 - Confirm current R.E.P.O. version and supported lobby/run lifecycle hooks.
 - Confirm current Master Client detection and host migration behavior.
 - Validate the multiplayer request transport across two clients.
