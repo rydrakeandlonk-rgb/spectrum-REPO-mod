@@ -206,11 +206,11 @@ public sealed class RepoGatewayClient
         if (config?.categories == null) return;
         try
         {
+            // First Vortex test build: keep these two categories disabled even if
+            // Control Center still has older enabled settings saved for this channel.
             Plugin.SpawnPolicy = new SpawnPolicy(
-                config.categories.monster?.enabled ?? true,
-                config.categories.monster?.weight ?? 1d,
-                config.categories.utility_item?.enabled ?? true,
-                config.categories.utility_item?.weight ?? 1d,
+                false, 1d,
+                false, 1d,
                 config.categories.valuable?.enabled ?? true,
                 config.categories.valuable?.weight ?? 1d);
             Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
