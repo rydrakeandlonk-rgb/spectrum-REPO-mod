@@ -9,6 +9,18 @@ namespace SpectrumRepoMod.Tests;
 public sealed class CombinedRewardSelectorTests
 {
     [Fact]
+    public void InitialVortexTestPolicyAllowsOnlyValuables()
+    {
+        var policy = SpawnPolicy.Default;
+        Assert.False(policy.IsCategoryEnabled(RewardCategory.Monster));
+        Assert.False(policy.IsCategoryEnabled(RewardCategory.UtilityItem));
+        Assert.True(policy.IsCategoryEnabled(RewardCategory.Valuable));
+        Assert.Equal(0d, policy.Weights.Monster);
+        Assert.Equal(0d, policy.Weights.UtilityItem);
+        Assert.Equal(1d, policy.Weights.Valuable);
+    }
+
+    [Fact]
     public void UnknownShopItemsAreEligibleDuringUnrestrictedCatalogueTest()
     {
         var candidate = Candidate(RewardCategory.UtilityItem, "item:ordinary-tool");
