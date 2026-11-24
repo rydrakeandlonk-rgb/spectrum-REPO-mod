@@ -15,7 +15,7 @@ public sealed class SpawnPolicy
     public bool ValuablesEnabled { get; }
     public RewardCategoryWeights Weights { get; }
 
-    public static SpawnPolicy Default { get; } = new(true, 1d, true, 1d, true, 1d);
+    public static SpawnPolicy Default { get; } = new(false, 1d, false, 1d, true, 1d);
 
     public SpawnPolicy(
         bool monstersEnabled, double monsterWeight,
