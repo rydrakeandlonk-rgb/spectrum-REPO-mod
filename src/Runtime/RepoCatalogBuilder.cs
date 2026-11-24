@@ -17,8 +17,8 @@ public static class RepoCatalogBuilder
 {
     private static readonly HashSet<string> SupportedUtilityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "drone", "orb", "tracker", "vehicle", "tool", "itemupgrade",
-        "healthpack", "powercrystal", "cart", "pocketcart"
+        "drone", "tracker", "itemupgrade", "healthpack",
+        "powercrystal", "cart", "pocketcart"
     };
 
     public static SpawnCatalogSnapshot<RepoSpawnTarget> Build(SpawnPolicy? policy = null)
