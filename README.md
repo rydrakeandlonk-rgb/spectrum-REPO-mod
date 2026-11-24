@@ -50,3 +50,10 @@ The plugin is not ready for public distribution until it has been built against 
 ## Related repository
 
 The shared gateway, Event Hub routing and Control Center integration live in [spectrum-cloudflare](https://github.com/rydrakeandlonk-rgb/spectrum-cloudflare). This repository must not implement a second Twitch gateway or duplicate the Control Center's member/authentication logic.
+
+
+## Reward selection implementation
+
+The combined reward selector lives in `src/Rewards/CombinedRewardSelector.cs`. It selects one category and one candidate using a stable command-ID seed. Retries therefore resolve to the same result when the category weights and ordered catalogue snapshot are unchanged.
+
+The game adapter must build sorted, validated candidate lists from the current run's REPOLib registries. In particular, the utility pool is limited to supported non-weapon shop utilities; the selector does not accept arbitrary prefab names or decide catalogue eligibility itself. See `docs/REWARD-SELECTOR-VERIFICATION.md` for the test matrix.
