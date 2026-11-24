@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+- Add the Nexus Mods publishing workflow for Vortex-managed distribution.
+- Default the initial test build to valuables only.
+- Enforce the disabled category restrictions locally, regardless of previously saved Control Center settings.
+- Keep Twitch reward delivery and non-host multiplayer forwarding disabled.
+
 ## 0.1.2
 - Align the shipped plugin and assembly version with the final pairing and unrestricted-catalogue build.
 
