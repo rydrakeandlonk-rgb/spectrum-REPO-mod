@@ -32,14 +32,11 @@ public sealed class SpawnCatalogSnapshot<T>
         AllowedCandidates = rows.Where(row => row.Allowed).Select(row => row.Candidate).ToArray();
     }
 
-    public static SpawnCatalogSnapshot<T> Build(
-        IEnumerable<RewardCandidate<T>> candidates,
-        SpawnExclusionList? exclusions = null)
+    public static SpawnCatalogSnapshot<T> Build(IEnumerable<RewardCandidate<T>> candidates)
     {
-        exclusions ??= SpawnExclusionList.Default;
         return BuildInternal(candidates, candidate =>
         {
-            var allowed = SpawnSafetyGuard.TryValidate(candidate, exclusions, out var reason);
+            var allowed = SpawnSafetyGuard.TryValidate(candidate, out var reason);
             return (allowed, reason);
         });
     }
@@ -56,8 +53,8 @@ public sealed class SpawnCatalogSnapshot<T>
         });
     }
 
-    public bool CanSpawn(RewardCandidate<T>? candidate, SpawnExclusionList? exclusions, out string reason) =>
-        SpawnSafetyGuard.TryValidate(candidate, exclusions, out reason);
+    public bool CanSpawn(RewardCandidate<T>? candidate, out string reason) =>
+        SpawnSafetyGuard.TryValidate(candidate, out reason);
 
     public bool CanSpawn(RewardCandidate<T>? candidate, SpawnPolicy policy, out string reason)
     {
