@@ -187,22 +187,13 @@ public sealed class RepoGatewayClient
         if (config?.categories == null) return;
         try
         {
-            var exclusions = new System.Collections.Generic.List<SpawnExclusionEntry>();
-            foreach (var row in config.exclusions ?? Array.Empty<RepoExclusionPayload>())
-            {
-                if (row == null || string.IsNullOrWhiteSpace(row.id) || string.IsNullOrWhiteSpace(row.reason)) continue;
-                if (TryCategory(row.category, out var category))
-                    exclusions.Add(new SpawnExclusionEntry(category, row.id, row.reason));
-            }
-            var tags = config.global_excluded_tags ?? new[] { "weapon" };
             Plugin.SpawnPolicy = new SpawnPolicy(
                 config.categories.monster?.enabled ?? true,
                 config.categories.monster?.weight ?? 1d,
                 config.categories.utility_item?.enabled ?? true,
                 config.categories.utility_item?.weight ?? 1d,
                 config.categories.valuable?.enabled ?? true,
-                config.categories.valuable?.weight ?? 1d,
-                new SpawnExclusionList(exclusions, tags));
+                config.categories.valuable?.weight ?? 1d);
             Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
         }
         catch (Exception error)
@@ -266,16 +257,6 @@ public sealed class RepoGatewayClient
         _ => "unknown"
     };
 
-    private static bool TryCategory(string value, out RewardCategory category)
-    {
-        switch ((value ?? "").Trim().ToLowerInvariant())
-        {
-            case "monster": category = RewardCategory.Monster; return true;
-            case "utility_item": category = RewardCategory.UtilityItem; return true;
-            case "valuable": category = RewardCategory.Valuable; return true;
-            default: category = default; return false;
-        }
-    }
 
     [Serializable] private sealed class BasicMessage { public string type = ""; }
     [Serializable] private sealed class SessionStateMessage
@@ -324,8 +305,6 @@ public sealed class RepoGatewayClient
     [Serializable] private sealed class RepoConfigPayload
     {
         public RepoCategorySettings? categories;
-        public string[]? global_excluded_tags;
-        public RepoExclusionPayload[]? exclusions;
     }
     [Serializable] private sealed class RepoCategorySettings
     {
@@ -338,10 +317,5 @@ public sealed class RepoGatewayClient
         public bool enabled = true;
         public double weight = 1d;
     }
-    [Serializable] private sealed class RepoExclusionPayload
-    {
-        public string category = "";
-        public string id = "";
-        public string reason = "";
-    }
+
 }
