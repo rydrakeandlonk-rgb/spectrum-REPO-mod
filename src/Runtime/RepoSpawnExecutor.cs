@@ -66,7 +66,7 @@ internal sealed class RepoSpawnExecutor
         if (PhotonNetwork.CurrentRoom != null)
             spawned = PhotonNetwork.InstantiateRoomObject(prefab.ResourcePath, position, rotation, 0, null);
         else
-            spawned = Object.Instantiate(loadedPrefab, position, rotation);
+            spawned = UnityEngine.Object.Instantiate(loadedPrefab, position, rotation);
 
         if (spawned == null)
         {
