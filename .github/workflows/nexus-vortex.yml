@@ -65,7 +65,7 @@ jobs:
             exit 1
           fi
 
-      - name: Assemble and verify install ZIP
+      - name: Assemble and verify DLL-only install ZIP
         id: verify
         shell: bash
         env:
@@ -74,34 +74,22 @@ jobs:
           set -euo pipefail
           stage="dist/Spectrum_REPO_Mod"
           test -f "$stage/SpectrumRepoMod.dll"
-          test -f "$stage/manifest.json"
-          test -f "$stage/README.md"
-          test -f "$stage/CHANGELOG.md"
-          test -f "$stage/icon.png"
+          test ! -e "$stage/manifest.json"
+          test ! -e "$stage/README.md"
+          test ! -e "$stage/CHANGELOG.md"
+          test ! -e "$stage/icon.png"
           test ! -d "$stage/BepInEx"
-          python3 - <<'PY'
-          import json, os
-          path = "dist/Spectrum_REPO_Mod/manifest.json"
-          with open(path, encoding="utf-8") as f:
-              manifest = json.load(f)
-          manifest["version_number"] = os.environ["PACKAGE_VERSION"]
-          with open(path, "w", encoding="utf-8") as f:
-              json.dump(manifest, f, indent=2)
-              f.write("\n")
-          PY
+          stage_count="$(find "$stage" -mindepth 1 -maxdepth 1 | wc -l)"
+          test "$stage_count" -eq 1
           package="dist/Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip"
-          (cd "$stage" && zip -qr "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" .)
+          (cd "$stage" && zip -q "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" SpectrumRepoMod.dll)
           listing="$(mktemp)"
           unzip -Z1 "$package" > "$listing"
+          test "$(wc -l < "$listing")" -eq 1
           grep -qx 'SpectrumRepoMod.dll' "$listing"
-          grep -qx 'manifest.json' "$listing"
-          if grep -Eq '(^|/)BepInEx/|(^|/)config[.]cfg$|(^|/)config[.]json$' "$listing"; then
-            echo "::error::Package must not contain a BepInEx directory, local configuration, or credentials."
-            exit 1
-          fi
           echo "package=$package" >> "$GITHUB_OUTPUT"
           echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Verified standalone Vortex plugin package: $package"
+          echo "Verified DLL-only Vortex install package: $package"
 
       - name: Upload installable package artifact
         if: github.event_name != 'pull_request'
