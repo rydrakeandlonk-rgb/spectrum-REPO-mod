@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_to_nexus:
-        description: "Upload this verified build to the existing Nexus Mods file"
+        description: "Upload this verified build to the existing Nexus Mods file (main pushes publish automatically)"
         required: true
         type: boolean
         default: false
@@ -105,7 +105,7 @@ jobs:
 
   publish:
     name: Publish verified build to Nexus Mods
-    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:
