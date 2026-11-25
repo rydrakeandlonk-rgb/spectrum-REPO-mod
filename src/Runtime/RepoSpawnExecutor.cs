@@ -29,7 +29,13 @@ internal sealed class RepoSpawnExecutor
             return false;
         }
 
-        if (policy == null || !policy.TryValidate(candidate, out result))
+        if (policy == null)
+        {
+            result = "The valuable spawn policy is unavailable.";
+            return false;
+        }
+
+        if (!policy.TryValidate(candidate, out result))
             return false;
 
         if (!string.Equals(candidate.Category, "valuable", System.StringComparison.Ordinal))
