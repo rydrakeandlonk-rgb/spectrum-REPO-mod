@@ -29,6 +29,10 @@
       <HintPath>../../Uploads/Managed/UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>../../Uploads/Managed/UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>../../Uploads/Managed/UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
