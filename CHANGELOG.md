@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+- Add an F8 in-game Spectrum connection panel.
+- Add Twitch device-code pairing through Spectrum Control Center.
+- Save the approved broadcaster identity and private host credential in the local BepInEx configuration.
+- Connect to the Spectrum Game Mods WebSocket gateway.
+- Report active run, lobby ID and host authority to the backend.
+- Publish the current level's vanilla valuable catalogue.
+- Add host-authoritative valuable spawning for Control Center test requests.
+- Add a local request-deduplication guard.
+- Keep the test scope restricted to valuable collectibles; other categories are rejected.
+- Keep Twitch reward delivery disabled.
+- Build against the uploaded R.E.P.O. Managed assemblies and preserve DLL-only Vortex packaging.
+- Test-branch builds produce artifacts without automatically publishing to Nexus Mods.
+
 ## 0.3.3
 - Ship only the root-level SpectrumRepoMod.dll in the Nexus/Vortex install archive.
 - Keep manifest.json in the repository as build metadata but exclude it from the install archive.
