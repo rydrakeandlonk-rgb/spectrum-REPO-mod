@@ -73,11 +73,12 @@ jobs:
         run: |
           set -euo pipefail
           stage="dist/Spectrum_REPO_Mod"
-          test -f "$stage/BepInEx/plugins/SpectrumRepoMod.dll"
+          test -f "$stage/SpectrumRepoMod.dll"
           test -f "$stage/manifest.json"
           test -f "$stage/README.md"
           test -f "$stage/CHANGELOG.md"
           test -f "$stage/icon.png"
+          test ! -d "$stage/BepInEx"
           python3 - <<'PY'
           import json, os
           path = "dist/Spectrum_REPO_Mod/manifest.json"
@@ -92,15 +93,15 @@ jobs:
           (cd "$stage" && zip -qr "../Spectrum_REPO_Mod-${PACKAGE_VERSION}.zip" .)
           listing="$(mktemp)"
           unzip -Z1 "$package" > "$listing"
-          grep -Eq '(^|/)SpectrumRepoMod[.]dll$' "$listing"
-          grep -Eq '(^|/)manifest[.]json$' "$listing"
-          if grep -Eq '(^|/)config[.]cfg$|(^|/)config[.]json$' "$listing"; then
-            echo "::error::Package must not contain local configuration or credentials."
+          grep -qx 'SpectrumRepoMod.dll' "$listing"
+          grep -qx 'manifest.json' "$listing"
+          if grep -Eq '(^|/)BepInEx/|(^|/)config[.]cfg$|(^|/)config[.]json$' "$listing"; then
+            echo "::error::Package must not contain a BepInEx directory, local configuration, or credentials."
             exit 1
           fi
           echo "package=$package" >> "$GITHUB_OUTPUT"
           echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Verified install package: $package"
+          echo "Verified standalone Vortex plugin package: $package"
 
       - name: Upload installable package artifact
         if: github.event_name != 'pull_request'
