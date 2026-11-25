@@ -17,8 +17,8 @@ using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, new ReaderPar
 
 var needles = new[]
 {
-    "EnemySetup", "EnemyDirector", "Enemy", "StatsManager",
-    "Shop", "Item", "PrefabRef", "Spawn", "LevelGenerator"
+    "EnemySetup", "EnemyDirector", "LevelValuables",
+    "ValuableDirector", "PrefabRef", "LevelGenerator"
 };
 
 var matches = assembly.MainModule.Types
