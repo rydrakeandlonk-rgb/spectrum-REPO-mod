@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+- Republish the existing 0.4.0 integration test build under a new version number for Vortex/Nexus update detection.
+- No gameplay, networking, catalogue, or spawning behaviour changed.
+
 ## 0.4.0
 - Add an F8 in-game Spectrum connection panel.
 - Add Twitch device-code pairing through Spectrum Control Center.

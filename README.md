@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.4.0 is the first connected integration test build.** It adds an in-game F8 panel, Twitch device-code pairing, the Spectrum Game Mods gateway connection, live lobby/run/host reporting, a current-level valuable catalogue, and host-authoritative valuable test spawning.
+**Version 0.4.1 is a version-only republish of the connected 0.4.0 integration test build.** No functionality changed. It adds an in-game F8 panel, Twitch device-code pairing, the Spectrum Game Mods gateway connection, live lobby/run/host reporting, a current-level valuable catalogue, and host-authoritative valuable test spawning.
 
 ## Requirements
 
