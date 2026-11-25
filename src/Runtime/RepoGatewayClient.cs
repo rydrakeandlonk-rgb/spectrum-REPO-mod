@@ -47,7 +47,17 @@ internal sealed class RepoGatewayClient
         _gatewayUrl.Value = "wss://spectrum-game-mods.rydrakeandlonk.workers.dev/connect/repo/" + broadcasterUserId;
         _hostToken.Value = hostToken;
         _config.Save();
-        Start();
+
+        // If this instance was already connected under another broadcaster,
+        // force the receive loop to reconnect using the newly saved identity.
+        if (_connectionStarted)
+        {
+            try { _socket?.Abort(); } catch { }
+        }
+        else
+        {
+            Start();
+        }
     }
 
     public void Start()
