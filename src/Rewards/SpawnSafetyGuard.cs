@@ -17,7 +17,7 @@ public static class SpawnSafetyGuard
         if (SpawnWeaponsBlocker.IsBlocked(candidate.Category, candidate.Id))
         {
             reason = "Item is listed in SpawnWeaponsBlocker";
-            return false;
+            return true;
         }
 
         reason = string.Empty;

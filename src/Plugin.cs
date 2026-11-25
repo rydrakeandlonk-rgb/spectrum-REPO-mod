@@ -45,6 +45,7 @@ public sealed class Plugin : BaseUnityPlugin
         Log = Logger;
         SpawnPolicy = new RepoRuntimePolicy(true);
         Catalog = RepoCatalogSnapshot.Empty;
+        RepoCatalogueFile.EnsureInstalled();
 
         _pairingClient = new RepoPairingClient();
         _gateway = new RepoGatewayClient(Config);

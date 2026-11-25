@@ -49,6 +49,7 @@ internal static class RepoCatalogBuilder
     {
         policy ??= new RepoRuntimePolicy();
         var rows = new List<RepoCatalogRow>();
+        var editableCatalogue = RepoCatalogueFile.Load();
         foreach (var prefab in GetLevelPrefabRefs())
         {
             var displayName = string.IsNullOrWhiteSpace(prefab.PrefabName)
@@ -58,6 +59,8 @@ internal static class RepoCatalogBuilder
             var target = RepoSpawnTarget.ForValuable(prefab);
             var provisional = new RepoCatalogRow("valuable", id, displayName, target, true, string.Empty);
             var allowed = policy.TryValidate(provisional, out var reason);
+            if (allowed && !editableCatalogue.IsAllowed("valuable", id, out reason))
+                allowed = false;
             rows.Add(new RepoCatalogRow("valuable", id, displayName, target, allowed, reason));
         }
         return new RepoCatalogSnapshot(rows);
