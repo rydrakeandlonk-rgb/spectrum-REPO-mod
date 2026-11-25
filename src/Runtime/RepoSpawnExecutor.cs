@@ -1,12 +1,12 @@
-using REPOLib.Modules;
+using Photon.Pun;
 using SpectrumRepoMod.Rewards;
 using UnityEngine;
 
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Executes a selected catalogue entry only on the authoritative game host.
-/// The caller supplies a validated world position and rotation.
+/// Executes valuable spawns only on the authoritative game host, following
+/// the vanilla game's single-player and multiplayer instantiation paths.
 /// </summary>
 public sealed class RepoSpawnExecutor
 {
@@ -23,9 +23,10 @@ public sealed class RepoSpawnExecutor
             return false;
         }
 
-        if (RunManager.instance == null || LevelGenerator.Instance == null)
+        if (RunManager.instance == null || LevelGenerator.Instance == null ||
+            GameManager.instance == null || ValuableDirector.instance == null)
         {
-            result = "There is no active R.E.P.O. run.";
+            result = "There is no active R.E.P.O. valuable session.";
             return false;
         }
 
@@ -38,55 +39,58 @@ public sealed class RepoSpawnExecutor
         if (!policy.TryValidateSpawn(candidate, out result))
             return false;
 
-        var target = candidate.Value;
-        switch (candidate.Category)
+        if (candidate.Category != RewardCategory.Valuable)
         {
-            case RewardCategory.Monster:
-                if (target.Enemy == null)
-                {
-                    result = "The selected monster is no longer in the live catalogue.";
-                    return false;
-                }
-                var enemies = Enemies.SpawnEnemy(target.Enemy, position, rotation);
-                if (enemies == null || enemies.Count == 0)
-                {
-                    result = "The game did not confirm a successful monster spawn.";
-                    return false;
-                }
-                result = "Monster spawn completed.";
-                return true;
-
-            case RewardCategory.UtilityItem:
-                if (target.ShopItem == null)
-                {
-                    result = "The selected shop item is no longer in the live catalogue.";
-                    return false;
-                }
-                if (Items.SpawnItem(target.ShopItem, position, rotation) == null)
-                {
-                    result = "The game did not confirm a successful shop-item spawn.";
-                    return false;
-                }
-                result = "Shop-item spawn completed.";
-                return true;
-
-            case RewardCategory.Valuable:
-                if (target.Valuable == null)
-                {
-                    result = "The selected valuable is no longer in the live catalogue.";
-                    return false;
-                }
-                if (Valuables.SpawnValuable(target.Valuable, position, rotation) == null)
-                {
-                    result = "The game did not confirm a successful valuable spawn.";
-                    return false;
-                }
-                result = "Valuable spawn completed.";
-                return true;
-
-            default:
-                result = "Unsupported reward category.";
-                return false;
+            result = "This test build only supports valuable requests.";
+            return false;
         }
+
+        var prefab = candidate.Value.Valuable;
+        if (prefab == null || !prefab.IsValid())
+        {
+            result = "The selected valuable is no longer valid in the current level.";
+            return false;
+        }
+
+        GameObject? spawned;
+        if (GameManager.instance.gameMode != 0)
+        {
+            if (string.IsNullOrWhiteSpace(prefab.ResourcePath))
+            {
+                result = "The valuable has no multiplayer resource path.";
+                return false;
+            }
+
+            spawned = PhotonNetwork.InstantiateRoomObject(
+                prefab.ResourcePath, position, rotation, 0, null);
+        }
+        else
+        {
+            var loadedPrefab = prefab.Prefab;
+            if (loadedPrefab == null)
+            {
+                result = "The vanilla game could not load the valuable prefab.";
+                return false;
+            }
+
+            spawned = Object.Instantiate(loadedPrefab, position, rotation);
+        }
+
+        if (spawned == null)
+        {
+            result = "The game did not confirm a successful valuable spawn.";
+            return false;
+        }
+
+        var valuable = spawned.GetComponent<ValuableObject>();
+        if (valuable == null)
+        {
+            result = "The selected prefab did not contain a ValuableObject component.";
+            return false;
+        }
+
+        valuable.DollarValueSetLogic();
+        result = "Valuable spawn completed.";
+        return true;
     }
 }
