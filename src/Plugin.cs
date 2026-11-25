@@ -226,41 +226,51 @@ public sealed class Plugin : BaseUnityPlugin
         itemName = "";
         detail = "";
 
-        if (!SemiFunc.IsMasterClientOrSingleplayer())
+        try
         {
-            detail = "Only the current game host can execute a shared spawn.";
+            if (!SemiFunc.IsMasterClientOrSingleplayer())
+            {
+                detail = "Only the current game host can execute a shared spawn.";
+                return false;
+            }
+
+            if (Catalog.AllowedCandidates.Count == 0)
+                Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
+
+            if (Catalog.AllowedCandidates.Count == 0)
+            {
+                detail = "No eligible valuable collectibles are available in this level.";
+                return false;
+            }
+
+            var player = PlayerAvatar.instance;
+            if (player == null)
+            {
+                detail = "The local player is not ready.";
+                return false;
+            }
+
+            var candidate = Catalog.AllowedCandidates[UnityEngine.Random.Range(0, Catalog.AllowedCandidates.Count)];
+            var forward = player.transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.001f)
+                forward = Vector3.forward;
+            forward.Normalize();
+
+            // Spawn just ahead of the local player, slightly below waist height.
+            var position = player.transform.position + forward * 1.35f + Vector3.up * 0.7f;
+            var rotation = Quaternion.LookRotation(forward, Vector3.up);
+            var success = _spawnExecutor.TrySpawn(candidate, SpawnPolicy, position, rotation, out detail);
+            if (success)
+                itemName = candidate.DisplayName;
+            return success;
+        }
+        catch (Exception error)
+        {
+            detail = "The game rejected the valuable spawn: " + error.Message;
+            Log.LogError("R.E.P.O. valuable spawn failed: " + error);
             return false;
         }
-
-        if (Catalog.AllowedCandidates.Count == 0)
-            Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
-
-        if (Catalog.AllowedCandidates.Count == 0)
-        {
-            detail = "No eligible valuable collectibles are available in this level.";
-            return false;
-        }
-
-        var player = PlayerAvatar.instance;
-        if (player == null)
-        {
-            detail = "The local player is not ready.";
-            return false;
-        }
-
-        var candidate = Catalog.AllowedCandidates[UnityEngine.Random.Range(0, Catalog.AllowedCandidates.Count)];
-        var forward = player.transform.forward;
-        forward.y = 0f;
-        if (forward.sqrMagnitude < 0.001f)
-            forward = Vector3.forward;
-        forward.Normalize();
-
-        var position = player.transform.position + forward * 1.35f + Vector3.up * 0.85f;
-        var rotation = Quaternion.LookRotation(forward, Vector3.up);
-        var success = _spawnExecutor.TrySpawn(candidate, SpawnPolicy, position, rotation, out detail);
-        if (success)
-            itemName = candidate.DisplayName;
-        return success;
     }
 
     private void RememberRequest(string requestId)
