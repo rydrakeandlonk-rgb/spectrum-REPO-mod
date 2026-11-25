@@ -1,50 +1,76 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using REPOLib.Extensions;
-using REPOLib.Modules;
-using REPOLib.Objects;
 using SpectrumRepoMod.Rewards;
 
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Reads the live REPOLib registries. All valid shop items enter the initial
-/// utility catalogue; only exact IDs in SpawnWeaponsBlocker can be blocked.
+/// Builds the live catalogue from the valuable presets selected by the
+/// current vanilla level. It deliberately does not scan unrelated registries.
 /// </summary>
 public static class RepoCatalogBuilder
 {
+    public static IReadOnlyList<PrefabRef> GetLevelPrefabRefs()
+    {
+        var level = LevelGenerator.Instance?.Level;
+        if (level == null || level.ValuablePresets == null)
+            return Array.Empty<PrefabRef>();
+
+        var refs = new List<PrefabRef>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var preset in level.ValuablePresets)
+        {
+            if (preset == null)
+                continue;
+
+            Add(preset.tiny);
+            Add(preset.small);
+            Add(preset.medium);
+            Add(preset.big);
+            Add(preset.wide);
+            Add(preset.tall);
+            Add(preset.veryTall);
+        }
+
+        return refs;
+
+        void Add(IEnumerable<PrefabRef>? source)
+        {
+            if (source == null)
+                return;
+
+            foreach (var prefab in source)
+            {
+                if (prefab == null || !prefab.IsValid())
+                    continue;
+
+                var resourcePath = prefab.ResourcePath;
+                if (string.IsNullOrWhiteSpace(resourcePath) || !seen.Add(resourcePath))
+                    continue;
+
+                refs.Add(prefab);
+            }
+        }
+    }
+
     public static SpawnCatalogSnapshot<RepoSpawnTarget> Build(SpawnPolicy? policy = null)
     {
         var candidates = new List<RewardCandidate<RepoSpawnTarget>>();
 
-        foreach (var enemy in Enemies.AllEnemies)
+        foreach (var prefab in GetLevelPrefabRefs())
         {
-            if (enemy == null || string.IsNullOrWhiteSpace(enemy.name)) continue;
-            var id = "enemy:" + enemy.name.Trim();
-            candidates.Add(new RewardCandidate<RepoSpawnTarget>(
-                RewardCategory.Monster, id, enemy.name, RepoSpawnTarget.ForEnemy(enemy)));
-        }
+            var displayName = string.IsNullOrWhiteSpace(prefab.PrefabName)
+                ? prefab.ResourcePath
+                : prefab.PrefabName;
+            var id = "valuable:" + prefab.ResourcePath;
 
-        foreach (var item in Items.AllItems)
-        {
-            if (item == null || item.prefab == null || !item.prefab.IsValid()) continue;
-            var id = "item:" + item.prefab.ResourcePath;
             candidates.Add(new RewardCandidate<RepoSpawnTarget>(
-                RewardCategory.UtilityItem,
+                RewardCategory.Valuable,
                 id,
-                string.IsNullOrWhiteSpace(item.itemName) ? item.prefab.PrefabName : item.itemName,
-                RepoSpawnTarget.ForShopItem(item),
-                ShopItemClassification.Unknown));
-        }
-
-        foreach (var valuable in Valuables.AllValuables)
-        {
-            if (valuable == null || !valuable.IsValid()) continue;
-            var id = "valuable:" + valuable.ResourcePath;
-            candidates.Add(new RewardCandidate<RepoSpawnTarget>(
-                RewardCategory.Valuable, id, valuable.PrefabName,
-                RepoSpawnTarget.ForValuable(valuable), ShopItemClassification.Valuable));
+                displayName,
+                RepoSpawnTarget.ForValuable(prefab)));
         }
 
         return policy == null
