@@ -1,28 +1,25 @@
-# REPOLib catalogue validation notes
+# Vanilla valuable API notes
 
-The R.E.P.O. plugin reads the live REPOLib registries and builds a catalogue snapshot after the game run is ready.
+This document records the decompiled vanilla APIs used by the Spectrum R.E.P.O. Mod valuable-only test build.
 
-## Registry sources
+## Catalogue source
 
-- REPOLib.Modules.Enemies.AllEnemies exposes the active enemy catalogue.
-- REPOLib.Modules.Items.AllItems exposes registered shop/game items.
-- REPOLib.Modules.Valuables.AllValuables exposes valuable presets.
+- `LevelGenerator.Instance.Level.ValuablePresets` provides the presets selected for the current level.
+- Each `LevelValuables` preset exposes seven lists: `tiny`, `small`, `medium`, `big`, `wide`, `tall`, and `veryTall`.
+- Each list contains vanilla `PrefabRef` values.
+- `PrefabRef.IsValid()`, `PrefabName`, `ResourcePath`, `IsFinalized`, and `Prefab` expose the metadata and loading interface needed by the catalogue.
+- The game prepares these references through `LevelGenerator.PrefabsPrepare` before its own spawn process.
 
-## Current unrestricted test mode
+## Spawn behavior
 
-Every valid entry from Items.AllItems is currently added to the utility-item catalogue. The previous item-type allow-list, unknown-type rejection, weapon classification rejection and global weapon tag restriction have been removed for this test.
+The vanilla `ValuableDirector` uses the prefab resource path with `PhotonNetwork.InstantiateRoomObject` in multiplayer and instantiates `PrefabRef.Prefab` in single-player. After instantiation it obtains the `ValuableObject` component and calls `DollarValueSetLogic()`.
 
-The only item exclusion mechanism is src/Rewards/SpawnWeaponsBlocker.cs. Its exact catalogue-ID list is intentionally empty. When exclusions are added later, use confirmed stable IDs from the live catalogue, not display names or broad item-type tags.
+The Spectrum test executor follows those same network-mode-specific creation paths and calls the same value-initialisation method.
 
-Category enable/weight settings remain remotely configurable. They determine whether the monster, utility-item or valuable category can be selected; they do not add item exclusions.
+## Runtime constraints
 
-## Runtime validation still required
-
-- Verify the full item catalogue count against the live game and installed mod profile.
-- Test representative ordinary shop items through the Control Center utility-item spawn action.
-- Record any items that fail to spawn, with their exact catalogue ID and failure details.
-- Only after ordinary items are confirmed working should individual exclusions be added to SpawnWeaponsBlocker.cs.
-- Verify spawn placement and host authority in a private multiplayer session.
-- Refresh the catalogue after run/level transitions.
-
-Do not guess item IDs or populate the blocker from display names. Keep all actual exclusion IDs in the one blocker file.
+- The catalogue is specific to the current level; it is not a global scan of every valuable in the game.
+- Prefab references are prepared before publication so multiplayer resource loading follows the game's expected path.
+- The catalogue is rebuilt when the current level changes.
+- Only valid prefab references are included, and duplicate resource paths are collapsed.
+- All test requests are host-authoritative and restricted to the valuable category.
