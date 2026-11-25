@@ -1,0 +1,45 @@
+name: Inspect R.E.P.O. game assembly metadata
+
+on:
+  push:
+    branches: ["research/game-assembly-inspector"]
+    paths:
+      - "tools/GameAssemblyInspector/**"
+      - ".github/workflows/game-assembly-inspector.yml"
+      - "Uploads/Managed/Assembly-CSharp.dll"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Inspect vanilla game registry metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Inspect Assembly-CSharp metadata
+        run: |
+          dotnet run --project tools/GameAssemblyInspector/GameAssemblyInspector.csproj --configuration Release -- Uploads/Managed/Assembly-CSharp.dll game-assembly-metadata.json > game-assembly-metadata.log
+
+      - name: Upload metadata report
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-game-assembly-metadata
+          path: |
+            game-assembly-metadata.json
+            game-assembly-metadata.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Print targeted registry summary
+        run: |
+          grep -E '"type"|"name"|"type"|"METADATA_INSPECTION_COMPLETE' game-assembly-metadata.log | head -n 1200
