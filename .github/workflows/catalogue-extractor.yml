@@ -1,0 +1,49 @@
+name: Build R.E.P.O. Catalogue Extractor
+
+on:
+  push:
+    branches: ["research/catalogue-extractor"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-catalogue-extractor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore extractor
+        run: dotnet restore ./tools/CatalogueExtractor/CatalogueExtractor.csproj
+
+      - name: Build read-only extractor
+        run: dotnet build ./tools/CatalogueExtractor/CatalogueExtractor.csproj --configuration Release --no-restore
+
+      - name: Assemble extractor package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/CatalogueExtractor
+          cp tools/CatalogueExtractor/bin/Release/netstandard2.1/SpectrumRepoCatalogueExtractor.dll dist/CatalogueExtractor/
+          (cd dist/CatalogueExtractor && zip -q ../Spectrum_REPO_Catalogue_Extractor.zip SpectrumRepoCatalogueExtractor.dll)
+
+      - name: Upload extractor artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spectrum_REPO_Catalogue_Extractor
+          path: dist/Spectrum_REPO_Catalogue_Extractor.zip
+          if-no-files-found: error
+          retention-days: 14
