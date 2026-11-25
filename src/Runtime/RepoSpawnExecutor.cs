@@ -26,7 +26,12 @@ internal sealed class RepoSpawnExecutor
             return false;
         }
 
-        if (policy == null || !policy.TryValidate(candidate, out result))
+        if (policy == null)
+        {
+            result = "The spawn policy is unavailable.";
+            return false;
+        }
+        if (!policy.TryValidate(candidate, out result))
             return false;
 
         if (string.Equals(candidate.Category, "valuable", StringComparison.Ordinal))
@@ -112,9 +117,9 @@ internal sealed class RepoSpawnExecutor
             return false;
         }
 
-        var before = generator.EnemiesSpawnTarget;
+        var before = director.enemiesSpawned.Count;
         generator.EnemySpawn(setup, position);
-        if (generator.EnemiesSpawnTarget <= before)
+        if (director.enemiesSpawned.Count <= before)
         {
             result = "The game did not confirm a successful monster spawn.";
             return false;
