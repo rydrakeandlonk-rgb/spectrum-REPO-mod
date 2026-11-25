@@ -21,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>../../Uploads/Managed/UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>../../Uploads/Managed/UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
