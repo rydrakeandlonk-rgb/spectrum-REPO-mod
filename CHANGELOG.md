@@ -1,27 +1,16 @@
 # Changelog
 
-## 0.1.3
-- Add the Nexus Mods publishing workflow for Vortex-managed distribution.
-- Default the initial test build to valuables only.
-- Enforce the disabled category restrictions locally, regardless of previously saved Control Center settings.
-- Keep Twitch reward delivery and non-host multiplayer forwarding disabled.
+## 0.2.0
+- Remove REPOLib as a runtime and installation dependency.
+- Build the valuable catalogue from the current vanilla level's seven valuable preset groups.
+- Prepare valuable prefabs through the vanilla level generator before catalogue publication.
+- Spawn valuables through the vanilla single-player and multiplayer instantiation paths.
+- Keep the initial test build restricted to valuable requests.
+- Refresh the catalogue when the current level changes.
+- Preserve Twitch pairing, local host credentials, and the Spectrum gateway connection.
+- Require explicit release or manual approval before publishing to Nexus Mods.
 
-## 0.1.2
-- Align the shipped plugin and assembly version with the final pairing and unrestricted-catalogue build.
-
-## 0.1.1
-- Add the in-game Connect to Twitch panel, Control Center approval and automatic local credential storage.
-- Remove manual host credential generation/copying from the dashboard workflow.
-- Remove configurable No Spawn List and all old item classification/weapon-tag restrictions.
-- Add one empty SpawnWeaponsBlocker as the sole source of future exact item exclusions.
-- Include every valid REPOLib item in the unrestricted catalogue test.
-- Keep category enable/weight settings separate from item exclusions.
-- Twitch reward delivery and non-host multiplayer forwarding remain disabled.
-
-## 0.1.0
-- Initial Spectrum gateway connection and broadcaster-scoped host credential support.
-- Live REPOLib catalogue publication and remote policy updates.
-- Control Center manual test requests for monsters, utility items and valuables.
-- Host-only execution with a final spawn-policy validation.
-- Global weapon exclusion and fail-closed utility item classification.
-- Twitch redemptions and non-host multiplayer forwarding remain disabled.
+## 0.1.x
+- Introduced the BepInEx plugin, Spectrum gateway connection, and broadcaster-scoped host pairing.
+- Added the in-game connection panel and automatic local credential storage.
+- Added Control Center catalogue publication and host-side test request acknowledgements.
