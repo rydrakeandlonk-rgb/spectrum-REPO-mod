@@ -1,19 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace SpectrumRepoMod.Runtime;
 
-/// <summary>
-/// Narrow first-test policy. This version intentionally recognises only
-/// valuable collectibles; every other category is rejected by default.
-/// </summary>
+/// <summary>Category policy for supported, non-weapon spawn types.</summary>
 internal sealed class RepoRuntimePolicy
 {
     public bool ValuablesEnabled { get; }
+    public bool MonstersEnabled { get; }
 
-    public RepoRuntimePolicy(bool valuablesEnabled = true)
+    public RepoRuntimePolicy(bool valuablesEnabled = true, bool monstersEnabled = true)
     {
         ValuablesEnabled = valuablesEnabled;
+        MonstersEnabled = monstersEnabled;
     }
 
     public bool TryValidate(RepoCatalogRow? candidate, out string reason)
@@ -24,21 +24,41 @@ internal sealed class RepoRuntimePolicy
             return false;
         }
 
-        if (!string.Equals(candidate.Category, "valuable", System.StringComparison.Ordinal))
+        if (string.Equals(candidate.Category, "valuable", StringComparison.Ordinal))
         {
-            reason = "This test build supports valuable collectibles only.";
-            return false;
+            if (!ValuablesEnabled)
+            {
+                reason = "Valuable spawning is disabled in Control Center.";
+                return false;
+            }
+            if (candidate.Target.Valuable == null || !candidate.Target.Valuable.IsValid())
+            {
+                reason = "The valuable is no longer available.";
+                return false;
+            }
         }
-
-        if (!ValuablesEnabled)
+        else if (string.Equals(candidate.Category, "monster", StringComparison.Ordinal))
         {
-            reason = "Valuable spawning is disabled in Control Center.";
-            return false;
+            if (!MonstersEnabled)
+            {
+                reason = "Monster spawning is disabled in Control Center.";
+                return false;
+            }
+            var setup = candidate.Target.Monster;
+            if (setup == null || setup.spawnObjects == null || setup.spawnObjects.Count == 0)
+            {
+                reason = "The monster setup has no spawnable prefab references.";
+                return false;
+            }
+            if (setup.spawnObjects.Exists(prefab => prefab == null || !prefab.IsValid()))
+            {
+                reason = "The monster setup contains an invalid prefab reference.";
+                return false;
+            }
         }
-
-        if (candidate.Target.Valuable == null || !candidate.Target.Valuable.IsValid())
+        else
         {
-            reason = "The valuable is no longer available in the current level.";
+            reason = "This build supports valuables and monsters only.";
             return false;
         }
 
@@ -79,5 +99,5 @@ internal sealed class RepoCatalogSnapshot
         AllowedCandidates = Rows.Where(row => row.Allowed).ToArray();
     }
 
-    public static RepoCatalogSnapshot Empty { get; } = new(System.Array.Empty<RepoCatalogRow>());
+    public static RepoCatalogSnapshot Empty { get; } = new(Array.Empty<RepoCatalogRow>());
 }
