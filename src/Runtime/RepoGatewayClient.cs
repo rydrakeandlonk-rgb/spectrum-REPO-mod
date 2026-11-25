@@ -240,13 +240,15 @@ internal sealed class RepoGatewayClient
         if (config?.categories == null) return;
         try
         {
-            Plugin.SpawnPolicy = new RepoRuntimePolicy(config.categories.valuable?.enabled ?? true);
+            Plugin.SpawnPolicy = new RepoRuntimePolicy(
+                config.categories.valuable?.enabled ?? true,
+                config.categories.monster?.enabled ?? true);
             Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
         }
         catch (Exception error)
         {
-            Plugin.Log.LogError("Could not apply the Control Center valuable policy: " + error.Message);
-            Plugin.SpawnPolicy = new RepoRuntimePolicy(false);
+            Plugin.Log.LogError("Could not apply the Control Center spawn policy: " + error.Message);
+            Plugin.SpawnPolicy = new RepoRuntimePolicy(false, false);
             Plugin.Catalog = RepoCatalogSnapshot.Empty;
         }
     }
