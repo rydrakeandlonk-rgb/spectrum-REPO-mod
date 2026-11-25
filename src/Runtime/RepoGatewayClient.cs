@@ -238,8 +238,17 @@ internal sealed class RepoGatewayClient
     private void ApplyRemotePolicy(RepoConfigPayload? config)
     {
         if (config?.categories == null) return;
-        Plugin.SpawnPolicy = new RepoRuntimePolicy(config.categories.valuable?.enabled ?? true);
-        Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
+        try
+        {
+            Plugin.SpawnPolicy = new RepoRuntimePolicy(config.categories.valuable?.enabled ?? true);
+            Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
+        }
+        catch (Exception error)
+        {
+            Plugin.Log.LogError("Could not apply the Control Center valuable policy: " + error.Message);
+            Plugin.SpawnPolicy = new RepoRuntimePolicy(false);
+            Plugin.Catalog = RepoCatalogSnapshot.Empty;
+        }
     }
 
     private async Task Send<T>(T message, CancellationToken cancellationToken)
