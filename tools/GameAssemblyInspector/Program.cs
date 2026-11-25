@@ -21,6 +21,19 @@ var needles = new[]
     "ValuableDirector", "PrefabRef", "LevelGenerator"
 };
 
+// Inspect only the known, safe runtime entry points needed for the
+// non-weapon monster and valuable catalogue. Do not dump unrelated methods.
+var inspectedMethods = new HashSet<string>(StringComparer.Ordinal)
+{
+    "EnemyDirector::GetEnemy",
+    "LevelGenerator::EnemySetup",
+    "LevelGenerator::EnemySpawn",
+    "LevelGenerator::EnemySpawnObject",
+    "ValuableDirector::SpawnValuable",
+    "PrefabRef\u00601::get_Prefab",
+    "PrefabRef\u00601::IsValid"
+};
+
 var matches = assembly.MainModule.Types
     .SelectMany(Flatten)
     .Where(t => needles.Any(n => t.Name.Contains(n, StringComparison.OrdinalIgnoreCase)))
@@ -46,14 +59,28 @@ var matches = assembly.MainModule.Types
         methods = t.Methods
             .Where(m => m.IsPublic || m.Name.Contains("Spawn", StringComparison.OrdinalIgnoreCase)
                 || m.Name.Contains("Setup", StringComparison.OrdinalIgnoreCase)
-                || m.Name.Contains("Item", StringComparison.OrdinalIgnoreCase)
                 || m.Name.Contains("Enemy", StringComparison.OrdinalIgnoreCase))
             .Select(m => new
             {
                 name = m.Name,
                 returnType = m.ReturnType.FullName,
                 isStatic = m.IsStatic,
-                parameters = m.Parameters.Select(p => new { name = p.Name, type = p.ParameterType.FullName }).ToArray()
+                parameters = m.Parameters.Select(p => new { name = p.Name, type = p.ParameterType.FullName }).ToArray(),
+                inspectedBody = inspectedMethods.Contains($"{t.Name}::{m.Name}") && m.HasBody
+                    ? m.Body.Instructions.Select(i => new
+                    {
+                        opcode = i.OpCode.Name,
+                        operand = i.Operand switch
+                        {
+                            MethodReference method => $"{method.DeclaringType.FullName}::{method.Name}",
+                            FieldReference field => $"{field.DeclaringType.FullName}::{field.Name}",
+                            TypeReference type => type.FullName,
+                            string value => value,
+                            null => null,
+                            _ => i.Operand.ToString()
+                        }
+                    }).ToArray()
+                    : null
             }).ToArray()
     }).ToArray();
 
