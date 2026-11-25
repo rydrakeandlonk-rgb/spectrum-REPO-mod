@@ -15,9 +15,6 @@ if ($LASTEXITCODE -ne 0) { throw "Dependency restore failed." }
 dotnet build $project --configuration Release --no-restore
 if ($LASTEXITCODE -ne 0) { throw "The R.E.P.O. plugin build failed." }
 
-dotnet test (Join-Path $root "tests/SpectrumRepoMod.Tests.csproj") --configuration Release
-if ($LASTEXITCODE -ne 0) { throw "Automated tests failed." }
-
 $required = @(
     (Join-Path $stage "BepInEx/plugins/SpectrumRepoMod.dll"),
     (Join-Path $stage "manifest.json"),

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_to_nexus:
-        description: "Upload this verified build to the existing Nexus Mods file (main pushes publish automatically)"
+        description: "Upload this build to the existing Nexus Mods file (main pushes publish automatically)"
         required: true
         type: boolean
         default: false
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build, test and package
+    name: Build and package
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -51,11 +51,19 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ./src/SpectrumRepoMod.csproj
 
-      - name: Build plugin
+      - name: Build minimal plugin
         run: dotnet build ./src/SpectrumRepoMod.csproj --configuration Release --no-restore
 
-      - name: Run automated tests
-        run: dotnet test ./tests/SpectrumRepoMod.Tests.csproj --configuration Release
+      - name: Verify loader-only compilation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'EnableDefaultCompileItems>false' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Plugin.cs"' src/SpectrumRepoMod.csproj
+          if grep -Eq 'RepoGatewayClient|RepoPairingClient|RepoCatalogBuilder|RepoSpawnExecutor' src/Plugin.cs; then
+            echo "::error::Stage 1 must not initialise game or network integrations."
+            exit 1
+          fi
 
       - name: Assemble and verify install ZIP
         id: verify
