@@ -7,7 +7,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>SpectrumRepoMod</AssemblyName>
     <RootNamespace>SpectrumRepoMod</RootNamespace>
-    <Version>0.3.2</Version>
+    <Version>0.3.3</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -20,9 +20,5 @@
     <PropertyGroup><PackageStage>$(MSBuildProjectDirectory)/../dist/Spectrum_REPO_Mod</PackageStage></PropertyGroup>
     <MakeDir Directories="$(PackageStage)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStage)" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)/../manifest.json" DestinationFolder="$(PackageStage)" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)/../README.md" DestinationFolder="$(PackageStage)" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)/../CHANGELOG.md" DestinationFolder="$(PackageStage)" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)/../icon.png" DestinationFolder="$(PackageStage)" />
   </Target>
 </Project>
