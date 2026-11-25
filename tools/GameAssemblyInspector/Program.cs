@@ -17,7 +17,7 @@ using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath, new ReaderPar
 
 var needles = new[]
 {
-    "EnemySetup", "EnemyDirector", "LevelValuables",
+    "EnemySetup", "EnemyDirector", "EnemyParent", "LevelValuables",
     "ValuableDirector", "PrefabRef", "LevelGenerator"
 };
 
@@ -29,6 +29,8 @@ var inspectedMethods = new HashSet<string>(StringComparer.Ordinal)
     "EnemyDirector::FirstSpawnPointAdd",
     "LevelGenerator::EnemySetup",
     "LevelGenerator::EnemySpawn",
+    "LevelGenerator::EnemySpawnObject",
+    "EnemyDirector::EnemySpawn",
     "LevelGenerator::EnemySpawnObject",
     "ValuableDirector::SpawnValuable",
     "PrefabRef\u00601::get_Prefab",
