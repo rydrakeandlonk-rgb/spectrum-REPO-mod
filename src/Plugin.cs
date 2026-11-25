@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Linq;
 using System.Threading;
 using BepInEx;
@@ -183,7 +185,7 @@ public sealed class Plugin : BaseUnityPlugin
                 try
                 {
                     var prefabRefs = RepoCatalogBuilder.GetLevelPrefabRefs();
-                    yield return LevelGenerator.Instance.PrefabsPrepare(prefabRefs);
+                    yield return PrepareLevelPrefabs(prefabRefs);
 
                     Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
                     _catalogueLevel = currentLevel;
@@ -200,6 +202,35 @@ public sealed class Plugin : BaseUnityPlugin
 
             yield return new WaitForSeconds(1f);
         }
+    }
+
+    private IEnumerator PrepareLevelPrefabs(IReadOnlyList<PrefabRef> prefabRefs)
+    {
+        var prepareMethod = typeof(LevelGenerator)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .FirstOrDefault(method =>
+            {
+                var parameters = method.GetParameters();
+                return method.Name == "PrefabsPrepare" &&
+                    parameters.Length == 1 &&
+                    parameters[0].ParameterType.IsAssignableFrom(prefabRefs.GetType());
+            });
+
+        if (prepareMethod != null)
+        {
+            var preparation = prepareMethod.Invoke(LevelGenerator.Instance, new object[] { prefabRefs }) as IEnumerator;
+            if (preparation != null)
+                yield return preparation;
+            yield break;
+        }
+
+        Log.LogWarning("The compiled game library does not expose PrefabsPrepare; loading the current level's valuable prefabs directly as a compatibility fallback.");
+        foreach (var prefab in prefabRefs)
+        {
+            if (prefab != null && prefab.IsValid() && prefab.Prefab == null)
+                Log.LogWarning("Could not load valuable prefab: " + prefab.ResourcePath);
+        }
+        yield return null;
     }
 
     private void HandleSpawnRequest(string categoryName, string requestId)
