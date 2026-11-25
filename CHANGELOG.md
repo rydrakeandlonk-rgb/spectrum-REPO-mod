@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3
+- Ship only the root-level SpectrumRepoMod.dll in the Nexus/Vortex install archive.
+- Keep manifest.json in the repository as build metadata but exclude it from the install archive.
+- Exclude README, changelog, and icon from the install archive as well.
+- Apply the DLL-only package rule to the local PowerShell build and GitHub Actions release pipeline.
+- Keep the plugin inert; only update its version identity.
+
 ## 0.3.2
 - Reduce the plugin to its BepInEx identity metadata only.
 - Remove the custom Awake method and startup log message.
