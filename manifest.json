@@ -1,8 +1,8 @@
 {
   "name": "Spectrum_REPO_Mod",
-  "version_number": "0.3.1",
+  "version_number": "0.3.2",
   "website_url": "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod",
-  "description": "Spectrum R.E.P.O. loader validation build with standalone Vortex plugin packaging.",
+  "description": "Spectrum R.E.P.O. inert BepInEx plugin for deployment diagnosis.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2305"
   ]
