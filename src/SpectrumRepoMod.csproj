@@ -18,8 +18,15 @@
     <Compile Include="Runtime/RepoGatewayClient.cs" />
     <Compile Include="Runtime/RepoRuntimeModels.cs" />
     <Compile Include="Runtime/RepoCatalogBuilder.cs" />
+    <Compile Include="Runtime/RepoCatalogueFile.cs" />
     <Compile Include="Runtime/RepoSpawnExecutor.cs" />
     <Compile Include="Runtime/RepoSpawnTarget.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Catalogue/vanilla-catalogue.json">
+      <LogicalName>SpectrumRepoMod.Catalogue.vanilla-catalogue.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
