@@ -182,7 +182,7 @@ public sealed class Plugin : BaseUnityPlugin
             var currentLevel = LevelGenerator.Instance.Level;
             if (!ReferenceEquals(currentLevel, _catalogueLevel))
             {
-                IReadOnlyList<PrefabRef> prefabRefs;
+                IReadOnlyList<PrefabRef>? prefabRefs = null;
                 try
                 {
                     prefabRefs = RepoCatalogBuilder.GetLevelPrefabRefs();
@@ -190,6 +190,11 @@ public sealed class Plugin : BaseUnityPlugin
                 catch (Exception error)
                 {
                     Log.LogError($"Could not read the vanilla valuable presets: {error}");
+                }
+
+                if (prefabRefs == null)
+                {
+                    yield return new WaitForSeconds(1f);
                     continue;
                 }
 
