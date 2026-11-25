@@ -15,19 +15,18 @@ if ($LASTEXITCODE -ne 0) { throw "Dependency restore failed." }
 dotnet build $project --configuration Release --no-restore
 if ($LASTEXITCODE -ne 0) { throw "The R.E.P.O. plugin build failed." }
 
-$required = @(
-    (Join-Path $stage "SpectrumRepoMod.dll"),
-    (Join-Path $stage "manifest.json"),
-    (Join-Path $stage "README.md"),
-    (Join-Path $stage "CHANGELOG.md"),
-    (Join-Path $stage "icon.png")
-)
-foreach ($file in $required) {
-    if (!(Test-Path $file)) { throw "Package output is missing: $file" }
+$dll = Join-Path $stage "SpectrumRepoMod.dll"
+if (!(Test-Path $dll)) { throw "Package output is missing: $dll" }
+if ((Get-ChildItem -LiteralPath $stage -Force).Count -ne 1) {
+    throw "Vortex package staging must contain exactly the plugin DLL."
 }
 if (Test-Path (Join-Path $stage "BepInEx")) {
-    throw "Vortex package must not contain a BepInEx directory; ship the plugin DLL as a standalone file."
+    throw "Vortex package must not contain a BepInEx directory."
 }
 
-Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -CompressionLevel Optimal
+Compress-Archive -LiteralPath $dll -DestinationPath $zip -CompressionLevel Optimal
+$entries = @([System.IO.Compression.ZipFile]::OpenRead($zip).Entries | ForEach-Object { $_.FullName })
+if ($entries.Count -ne 1 -or $entries[0] -ne "SpectrumRepoMod.dll") {
+    throw "Install ZIP must contain only the root-level SpectrumRepoMod.dll."
+}
 Write-Host "Vortex install package created: $zip"
