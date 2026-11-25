@@ -1,6 +1,6 @@
 {
   "name": "Spectrum_REPO_Mod",
-  "version_number": "0.3.2",
+  "version_number": "0.3.3",
   "website_url": "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod",
   "description": "Spectrum R.E.P.O. inert BepInEx plugin for deployment diagnosis.",
   "dependencies": [
