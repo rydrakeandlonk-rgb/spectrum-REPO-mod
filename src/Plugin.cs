@@ -11,12 +11,11 @@ using UnityEngine;
 namespace SpectrumRepoMod;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-[BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.1.3";
+    public const string PluginVersion = "0.2.0";
 
     internal static ManualLogSource Log { get; private set; } = null!;
     internal static SpawnCatalogSnapshot<RepoSpawnTarget>? Catalog { get; set; }
@@ -31,12 +30,12 @@ public sealed class Plugin : BaseUnityPlugin
     private string _pairingCode = "";
     private string _verificationUri = "";
     private Rect _connectionWindowRect = new(24f, 24f, 390f, 250f);
+    private object? _catalogueLevel;
 
     private void Awake()
     {
         Log = Logger;
         Log.LogInfo($"{PluginName} {PluginVersion} loaded.");
-        Log.LogInfo($"REPOLib {REPOLib.MyPluginInfo.PLUGIN_VERSION} dependency resolved.");
         _gateway = new RepoGatewayClient(Config);
         _gateway.SpawnRequested += HandleSpawnRequest;
         _gateway.Start();
@@ -168,41 +167,56 @@ public sealed class Plugin : BaseUnityPlugin
 
     private IEnumerator WaitForGameCatalogue()
     {
-        yield return new WaitUntil(() =>
-            RunManager.instance != null &&
-            EnemyDirector.instance != null &&
-            StatsManager.instance != null);
+        StartCoroutine(PublishGatewayState());
 
-        try
+        while (true)
         {
-            Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
-            Log.LogInfo(
-                $"R.E.P.O. catalogue ready: {Catalog.TotalCount} entries, " +
-                $"{Catalog.AllowedCount} eligible, {Catalog.ExcludedCount} excluded.");
-            StartCoroutine(PublishGatewayState());
-        }
-        catch (System.Exception error)
-        {
-            Log.LogError($"Could not build the R.E.P.O. catalogue: {error.Message}");
+            yield return new WaitUntil(() =>
+                RunManager.instance != null &&
+                LevelGenerator.Instance != null &&
+                LevelGenerator.Instance.Level != null &&
+                LevelGenerator.Instance.Generated);
+
+            var currentLevel = LevelGenerator.Instance.Level;
+            if (!ReferenceEquals(currentLevel, _catalogueLevel))
+            {
+                try
+                {
+                    var prefabRefs = RepoCatalogBuilder.GetLevelPrefabRefs();
+                    yield return LevelGenerator.Instance.PrefabsPrepare(prefabRefs);
+
+                    Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
+                    _catalogueLevel = currentLevel;
+                    Log.LogInfo(
+                        $"Vanilla valuable catalogue ready: {Catalog.TotalCount} entries, " +
+                        $"{Catalog.AllowedCount} eligible, {Catalog.ExcludedCount} excluded.");
+                    _gateway?.PublishCatalogue();
+                }
+                catch (Exception error)
+                {
+                    Log.LogError($"Could not build the vanilla valuable catalogue: {error}");
+                }
+            }
+
+            yield return new WaitForSeconds(1f);
         }
     }
 
-
     private void HandleSpawnRequest(string categoryName, string requestId)
     {
-        var category = categoryName switch
+        if (Catalog == null || _gateway == null)
         {
-            "monster" => RewardCategory.Monster,
-            "utility_item" => RewardCategory.UtilityItem,
-            "valuable" => RewardCategory.Valuable,
-            _ => (RewardCategory?)null
-        };
-        if (!category.HasValue || Catalog == null || _gateway == null)
-        {
-            _gateway?.CompleteSpawn(requestId, categoryName, false, "", "Unsupported category or live catalogue unavailable.");
+            _gateway?.CompleteSpawn(requestId, categoryName, false, "", "The live valuable catalogue is not ready.");
             return;
         }
 
+        if (!string.Equals(categoryName, "valuable", StringComparison.OrdinalIgnoreCase))
+        {
+            _gateway.CompleteSpawn(requestId, categoryName, false, "", "This test build only supports valuable requests.");
+            return;
+        }
+
+        var category = RewardCategory.Valuable;
         if (!SemiFunc.IsMasterClientOrSingleplayer() || RunManager.instance == null || LevelGenerator.Instance == null)
         {
             _gateway.CompleteSpawn(requestId, categoryName, false, "", "This instance is not the active R.E.P.O. host in a running session.");
@@ -210,12 +224,12 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var candidates = Catalog.AllowedCandidates
-            .Where(candidate => candidate.Category == category.Value &&
+            .Where(candidate => candidate.Category == category &&
                 SpawnPolicy.TryValidateSpawn(candidate, out _))
             .ToArray();
         if (candidates.Length == 0)
         {
-            _gateway.CompleteSpawn(requestId, categoryName, false, "", "No eligible entries are available in this category.");
+            _gateway.CompleteSpawn(requestId, categoryName, false, "", "No eligible valuables are available in this level.");
             return;
         }
 
@@ -243,9 +257,9 @@ public sealed class Plugin : BaseUnityPlugin
             var success = SpawnExecutor.TrySpawn(selected, SpawnPolicy, position, rotation, out var detail);
             _gateway.CompleteSpawn(requestId, categoryName, success, success ? selected.DisplayName : "", detail);
         }
-        catch (System.Exception error)
+        catch (Exception error)
         {
-            Log.LogError("R.E.P.O. test spawn failed: " + error);
+            Log.LogError("R.E.P.O. valuable test spawn failed: " + error);
             _gateway.CompleteSpawn(requestId, categoryName, false, "", "The game rejected the spawn request. Check the mod log.");
         }
     }
