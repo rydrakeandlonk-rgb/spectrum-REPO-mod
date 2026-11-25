@@ -26,6 +26,7 @@ var needles = new[]
 var inspectedMethods = new HashSet<string>(StringComparer.Ordinal)
 {
     "EnemyDirector::GetEnemy",
+    "EnemyDirector::FirstSpawnPointAdd",
     "LevelGenerator::EnemySetup",
     "LevelGenerator::EnemySpawn",
     "LevelGenerator::EnemySpawnObject",
