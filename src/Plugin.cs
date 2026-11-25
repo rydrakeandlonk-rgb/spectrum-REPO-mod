@@ -221,7 +221,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private IEnumerator PrepareLevelPrefabs(IReadOnlyList<PrefabRef> prefabRefs)
     {
-        var prepareMethod = typeof(LevelGenerator)
+        MethodInfo? prepareMethod = typeof(LevelGenerator)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .FirstOrDefault(method =>
             {
@@ -231,15 +231,77 @@ public sealed class Plugin : BaseUnityPlugin
                     parameters[0].ParameterType.IsAssignableFrom(prefabRefs.GetType());
             });
 
+        object? invocationTarget = LevelGenerator.Instance;
+        object[] invocationArguments = { prefabRefs };
+
+        // Some game builds expose PrefabsPrepare as an extension method rather
+        // than an instance method. Resolve that form without a compile-time
+        // dependency on a specific game-library version.
+        if (prepareMethod == null)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type[] types;
+                try
+                {
+                    types = assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException error)
+                {
+                    types = error.Types.Where(type => type != null).Cast<Type>().ToArray();
+                }
+                catch
+                {
+                    continue;
+                }
+
+                foreach (var type in types)
+                {
+                    var candidateMethod = type
+                        .GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                        .FirstOrDefault(method =>
+                        {
+                            var parameters = method.GetParameters();
+                            return method.Name == "PrefabsPrepare" &&
+                                parameters.Length == 2 &&
+                                parameters[0].ParameterType.IsAssignableFrom(typeof(LevelGenerator)) &&
+                                parameters[1].ParameterType.IsAssignableFrom(prefabRefs.GetType());
+                        });
+
+                    if (candidateMethod == null)
+                        continue;
+
+                    prepareMethod = candidateMethod;
+                    invocationTarget = null;
+                    invocationArguments = new object[] { LevelGenerator.Instance, prefabRefs };
+                    break;
+                }
+
+                if (prepareMethod != null)
+                    break;
+            }
+        }
+
+        IEnumerator? preparation = null;
         if (prepareMethod != null)
         {
-            var preparation = prepareMethod.Invoke(LevelGenerator.Instance, new object[] { prefabRefs }) as IEnumerator;
-            if (preparation != null)
-                yield return preparation;
+            try
+            {
+                preparation = prepareMethod.Invoke(invocationTarget, invocationArguments) as IEnumerator;
+            }
+            catch (Exception error)
+            {
+                Log.LogWarning("Vanilla valuable prefab preparation could not be invoked: " + error.GetBaseException().Message);
+            }
+        }
+
+        if (preparation != null)
+        {
+            yield return preparation;
             yield break;
         }
 
-        Log.LogWarning("The compiled game library does not expose PrefabsPrepare; loading the current level's valuable prefabs directly as a compatibility fallback.");
+        Log.LogWarning("No compatible PrefabsPrepare method was found; loading the current level's valuable prefabs directly as a compatibility fallback.");
         foreach (var prefab in prefabRefs)
         {
             if (prefab != null && prefab.IsValid() && prefab.Prefab == null)
