@@ -218,7 +218,7 @@ public sealed class RepoGatewayClient
         catch (Exception error)
         {
             Plugin.Log.LogError("Could not apply Control Center R.E.P.O. policy: " + error.Message);
-            Plugin.SpawnPolicy = SpawnPolicy.Default;
+            Plugin.SpawnPolicy = new RepoRuntimePolicy(true);
         }
     }
 
