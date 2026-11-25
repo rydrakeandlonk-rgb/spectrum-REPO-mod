@@ -21,7 +21,7 @@ Each vanilla object gets its own entry:
 
 - `id` is the stable identifier used by the mod to match a runtime-discovered object.
 - `name` is a human-readable label for maintainers.
-- `category` identifies the runtime type (initially `valuable`; future categories will be added only after their spawn handlers are validated).
+- `category` identifies the runtime type. The shared tag limiter can classify `valuable`, `monster`, and `shop-utility` entries independently. A category is not spawn-enabled merely because it appears in the review catalogue; its runtime discovery and spawn handler must be validated separately.
 - `tags` are editable per-entry classifications. `blocked` always takes precedence over `allowed`.
 - When enforcement is enabled, an entry must be explicitly listed and have the `allowed` tag. Unlisted entries are blocked.
 
@@ -29,4 +29,4 @@ Each vanilla object gets its own entry:
 
 `enforceEntries` is currently `false`. This deliberately preserves the working 0.4.0 valuable behaviour while the verified vanilla IDs are collected. The file is already loaded by the mod, and setting `enforceEntries` to `true` activates its per-entry tag decisions.
 
-The initial `entries` array is intentionally empty. No vanilla names or identifiers are guessed or fabricated. Populate it only with IDs verified from the uploaded game assemblies or runtime catalogue. The mod currently discovers valuables from the active level; expanding discovery to the full vanilla catalogue is a separate step from enabling tag enforcement.
+The initial `entries` array is intentionally empty. No vanilla names or identifiers are guessed or fabricated. Populate it only with IDs verified by the read-only in-game extractor and manual review. The catalogue is a review and policy data file: it does not itself add discovery or spawning support for a category. The working runtime currently discovers valuables from the active level; monster and shop-utility execution must be separately validated before those categories can be enabled in the live mod.
