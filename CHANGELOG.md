@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+- Reduce the plugin to its BepInEx identity metadata only.
+- Remove the custom Awake method and startup log message.
+- Keep all game, networking, configuration, command, and gameplay functionality absent.
+- Retain standalone root-level DLL packaging for Vortex deployment diagnosis.
+
 ## 0.3.1
 - Package the BepInEx plugin DLL as a standalone archive-root file so Vortex can route it to BepInEx/plugins.
 - Stop shipping a BepInEx/plugins directory tree that can cause Vortex to manage the shared plugins directory as a deployment target.
