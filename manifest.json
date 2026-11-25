@@ -1,8 +1,8 @@
 {
   "name": "Spectrum_REPO_Mod",
-  "version_number": "0.3.3",
+  "version_number": "0.4.0",
   "website_url": "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod",
-  "description": "Spectrum R.E.P.O. inert BepInEx plugin for deployment diagnosis.",
+  "description": "Spectrum R.E.P.O. integration test build with Twitch pairing, lobby reporting and valuable-only test spawning.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2305"
   ]

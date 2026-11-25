@@ -1,18 +1,17 @@
 using Photon.Pun;
-using SpectrumRepoMod.Rewards;
 using UnityEngine;
 
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Executes valuable spawns only on the authoritative game host, following
-/// the vanilla game's single-player and multiplayer instantiation paths.
+/// Executes a selected valuable only on the current host. Multiplayer uses
+/// Photon room-object instantiation so every lobby member receives one object.
 /// </summary>
-public sealed class RepoSpawnExecutor
+internal sealed class RepoSpawnExecutor
 {
     public bool TrySpawn(
-        RewardCandidate<RepoSpawnTarget> candidate,
-        SpawnPolicy policy,
+        RepoCatalogRow candidate,
+        RepoRuntimePolicy policy,
         Vector3 position,
         Quaternion rotation,
         out string result)
@@ -32,47 +31,40 @@ public sealed class RepoSpawnExecutor
 
         if (policy == null)
         {
-            result = "The spawn policy is unavailable.";
+            result = "The valuable spawn policy is unavailable.";
             return false;
         }
 
-        if (!policy.TryValidateSpawn(candidate, out result))
+        if (!policy.TryValidate(candidate, out result))
             return false;
 
-        if (candidate.Category != RewardCategory.Valuable)
+        if (!string.Equals(candidate.Category, "valuable", System.StringComparison.Ordinal))
         {
-            result = "This test build only supports valuable requests.";
+            result = "This test build only supports valuable collectibles.";
             return false;
         }
 
-        var prefab = candidate.Value.Valuable;
-        if (prefab == null || !prefab.IsValid())
+        var prefab = candidate.Target.Valuable;
+        if (prefab == null || !prefab.IsValid() || string.IsNullOrWhiteSpace(prefab.ResourcePath))
         {
             result = "The selected valuable is no longer valid in the current level.";
             return false;
         }
 
-        GameObject? spawned;
-        if (GameManager.instance.gameMode != 0)
+        var loadedPrefab = prefab.Prefab;
+        if (loadedPrefab == null || loadedPrefab.GetComponent<ValuableObject>() == null)
         {
-            if (string.IsNullOrWhiteSpace(prefab.ResourcePath))
-            {
-                result = "The valuable has no multiplayer resource path.";
-                return false;
-            }
+            result = "The selected prefab is not a valid valuable collectible.";
+            return false;
+        }
 
-            spawned = PhotonNetwork.InstantiateRoomObject(
-                prefab.ResourcePath, position, rotation, 0, null);
+        GameObject spawned;
+        if (PhotonNetwork.CurrentRoom != null)
+        {
+            spawned = PhotonNetwork.InstantiateRoomObject(prefab.ResourcePath, position, rotation, 0, null);
         }
         else
         {
-            var loadedPrefab = prefab.Prefab;
-            if (loadedPrefab == null)
-            {
-                result = "The vanilla game could not load the valuable prefab.";
-                return false;
-            }
-
             spawned = Object.Instantiate(loadedPrefab, position, rotation);
         }
 
@@ -85,7 +77,7 @@ public sealed class RepoSpawnExecutor
         var valuable = spawned.GetComponent<ValuableObject>();
         if (valuable == null)
         {
-            result = "The selected prefab did not contain a ValuableObject component.";
+            result = "The spawned object did not contain a ValuableObject component.";
             return false;
         }
 

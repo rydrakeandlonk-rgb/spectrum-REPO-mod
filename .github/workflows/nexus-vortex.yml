@@ -2,7 +2,7 @@ name: Build and publish Spectrum R.E.P.O. Mod
 
 on:
   push:
-    branches: [main]
+    branches: [main, "testing/**"]
   pull_request:
     branches: [main]
   release:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_to_nexus:
-        description: "Upload this build to the existing Nexus Mods file (main pushes publish automatically)"
+        description: "Upload this verified build to the existing Nexus Mods file. Test branches never publish automatically."
         required: true
         type: boolean
         default: false
@@ -51,17 +51,21 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ./src/SpectrumRepoMod.csproj
 
-      - name: Build minimal plugin
+      - name: Build R.E.P.O. integration plugin
         run: dotnet build ./src/SpectrumRepoMod.csproj --configuration Release --no-restore
 
-      - name: Verify loader-only compilation boundary
+      - name: Verify explicit runtime compilation boundary
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'EnableDefaultCompileItems>false' src/SpectrumRepoMod.csproj
-          grep -q '<Compile Include="Plugin.cs"' src/SpectrumRepoMod.csproj
-          if grep -Eq 'RepoGatewayClient|RepoPairingClient|RepoCatalogBuilder|RepoSpawnExecutor' src/Plugin.cs; then
-            echo "::error::Stage 1 must not initialise game or network integrations."
+          grep -q '<Compile Include="Runtime/RepoPairingClient.cs"' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Runtime/RepoGatewayClient.cs"' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Runtime/RepoCatalogBuilder.cs"' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Runtime/RepoSpawnExecutor.cs"' src/SpectrumRepoMod.csproj
+          grep -q 'PluginVersion = "0.4.0"' src/Plugin.cs
+          if grep -q '<Compile Include="Rewards/' src/SpectrumRepoMod.csproj; then
+            echo "::error::The first test build must compile only the dedicated valuable-only runtime path."
             exit 1
           fi
 
@@ -102,7 +106,7 @@ jobs:
 
   publish:
     name: Publish verified build to Nexus Mods
-    if: ${{ github.event_name == 'push' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:

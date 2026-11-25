@@ -7,17 +7,73 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>SpectrumRepoMod</AssemblyName>
     <RootNamespace>SpectrumRepoMod</RootNamespace>
-    <Version>0.3.3</Version>
+    <Version>0.4.0</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
-  <ItemGroup><Compile Include="Plugin.cs" /></ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Plugin.cs" />
+    <Compile Include="Runtime/RepoPairingClient.cs" />
+    <Compile Include="Runtime/RepoGatewayClient.cs" />
+    <Compile Include="Runtime/RepoRuntimeModels.cs" />
+    <Compile Include="Runtime/RepoCatalogBuilder.cs" />
+    <Compile Include="Runtime/RepoSpawnExecutor.cs" />
+    <Compile Include="Runtime/RepoSpawnTarget.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="BepInEx.Core" Version="5.*" ExcludeAssets="runtime" />
-    <PackageReference Include="UnityEngine.Modules" Version="2022.3.62" IncludeAssets="compile" PrivateAssets="all" />
   </ItemGroup>
+
+  <!-- Compile against the exact game assemblies uploaded from the user's R.E.P.O. install. -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>../Uploads/Managed/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>../Uploads/Managed/Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonUnityNetworking">
+      <HintPath>../Uploads/Managed/PhotonUnityNetworking.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonRealtime">
+      <HintPath>../Uploads/Managed/PhotonRealtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Photon3Unity3D">
+      <HintPath>../Uploads/Managed/Photon3Unity3D.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>../Uploads/Managed/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>../Uploads/Managed/UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>../Uploads/Managed/UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>../Uploads/Managed/UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>../Uploads/Managed/UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
   <Target Name="StageVortexPackage" AfterTargets="Build">
-    <PropertyGroup><PackageStage>$(MSBuildProjectDirectory)/../dist/Spectrum_REPO_Mod</PackageStage></PropertyGroup>
+    <PropertyGroup>
+      <PackageStage>$(MSBuildProjectDirectory)/../dist/Spectrum_REPO_Mod</PackageStage>
+    </PropertyGroup>
     <MakeDir Directories="$(PackageStage)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStage)" />
   </Target>

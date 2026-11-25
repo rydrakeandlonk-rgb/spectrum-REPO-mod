@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using SpectrumRepoMod.Rewards;
 
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Builds the live catalogue from the valuable presets selected by the
-/// current vanilla level. It deliberately does not scan unrelated registries.
+/// Builds the catalogue only from the valuable presets selected by the
+/// currently loaded vanilla level. No unrelated game registries are scanned.
 /// </summary>
-public static class RepoCatalogBuilder
+internal static class RepoCatalogBuilder
 {
     public static IReadOnlyList<PrefabRef> GetLevelPrefabRefs()
     {
@@ -22,9 +20,7 @@ public static class RepoCatalogBuilder
 
         foreach (var preset in level.ValuablePresets)
         {
-            if (preset == null)
-                continue;
-
+            if (preset == null) continue;
             Add(preset.tiny);
             Add(preset.small);
             Add(preset.medium);
@@ -38,43 +34,32 @@ public static class RepoCatalogBuilder
 
         void Add(IEnumerable<PrefabRef>? source)
         {
-            if (source == null)
-                return;
-
+            if (source == null) return;
             foreach (var prefab in source)
             {
-                if (prefab == null || !prefab.IsValid())
-                    continue;
-
+                if (prefab == null || !prefab.IsValid()) continue;
                 var resourcePath = prefab.ResourcePath;
-                if (string.IsNullOrWhiteSpace(resourcePath) || !seen.Add(resourcePath))
-                    continue;
-
+                if (string.IsNullOrWhiteSpace(resourcePath) || !seen.Add(resourcePath)) continue;
                 refs.Add(prefab);
             }
         }
     }
 
-    public static SpawnCatalogSnapshot<RepoSpawnTarget> Build(SpawnPolicy? policy = null)
+    public static RepoCatalogSnapshot Build(RepoRuntimePolicy? policy = null)
     {
-        var candidates = new List<RewardCandidate<RepoSpawnTarget>>();
-
+        policy ??= new RepoRuntimePolicy();
+        var rows = new List<RepoCatalogRow>();
         foreach (var prefab in GetLevelPrefabRefs())
         {
             var displayName = string.IsNullOrWhiteSpace(prefab.PrefabName)
                 ? prefab.ResourcePath
                 : prefab.PrefabName;
             var id = "valuable:" + prefab.ResourcePath;
-
-            candidates.Add(new RewardCandidate<RepoSpawnTarget>(
-                RewardCategory.Valuable,
-                id,
-                displayName,
-                RepoSpawnTarget.ForValuable(prefab)));
+            var target = RepoSpawnTarget.ForValuable(prefab);
+            var provisional = new RepoCatalogRow("valuable", id, displayName, target, true, string.Empty);
+            var allowed = policy.TryValidate(provisional, out var reason);
+            rows.Add(new RepoCatalogRow("valuable", id, displayName, target, allowed, reason));
         }
-
-        return policy == null
-            ? SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates)
-            : SpawnCatalogSnapshot<RepoSpawnTarget>.Build(candidates, policy);
+        return new RepoCatalogSnapshot(rows);
     }
 }
