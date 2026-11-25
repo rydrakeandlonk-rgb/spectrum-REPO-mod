@@ -190,7 +190,6 @@ public sealed class Plugin : BaseUnityPlugin
                 catch (Exception error)
                 {
                     Log.LogError($"Could not read the vanilla valuable presets: {error}");
-                    yield return new WaitForSeconds(1f);
                     continue;
                 }
 
