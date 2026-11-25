@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BepInEx;
@@ -15,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.4.1";
+    public const string PluginVersion = "0.5.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -52,7 +53,7 @@ public sealed class Plugin : BaseUnityPlugin
         _gateway.Start();
 
         _showPanel = !_gateway.IsConfigured;
-        Log.LogInfo("Spectrum R.E.P.O. Mod 0.4.1 initialised. Press F8 to open its panel.");
+        Log.LogInfo("Spectrum R.E.P.O. Mod 0.5.0 initialised. Press F8 to open its panel.");
     }
 
     private void Start()
@@ -87,7 +88,7 @@ public sealed class Plugin : BaseUnityPlugin
         var room = PhotonNetwork.CurrentRoom;
         GUILayout.Label("Game: " + (inRun ? "Run active" : "Waiting for an active run"));
         GUILayout.Label("Lobby: " + (room == null ? "Single-player / not in a lobby" : room.Name));
-        GUILayout.Label("Valuable catalogue: " + Catalog.AllowedCandidates.Count + " available");
+        GUILayout.Label("Valuables: " + Catalog.AllowedCandidates.Count(row => row.Category == "valuable") + " | Monsters: " + Catalog.AllowedCandidates.Count(row => row.Category == "monster"));
 
         if (!string.IsNullOrWhiteSpace(_pairingStatus))
             GUILayout.Label("Twitch: " + _pairingStatus);
@@ -104,7 +105,9 @@ public sealed class Plugin : BaseUnityPlugin
         {
             GUILayout.Space(4f);
             if (GUILayout.Button("Test spawn one valuable beside me"))
-                SpawnLocalTestValuable();
+                SpawnLocalTest("valuable");
+            if (GUILayout.Button("Test spawn one monster beside me"))
+                SpawnLocalTest("monster");
         }
 
         GUILayout.Space(4f);
@@ -215,23 +218,24 @@ public sealed class Plugin : BaseUnityPlugin
 
         RememberRequest(requestId);
 
-        if (!string.Equals(category, "valuable", StringComparison.Ordinal))
+        if (!string.Equals(category, "valuable", StringComparison.Ordinal) &&
+            !string.Equals(category, "monster", StringComparison.Ordinal))
         {
-            _gateway.CompleteSpawn(requestId, category, false, "", "This test build supports valuable collectibles only.");
+            _gateway.CompleteSpawn(requestId, category, false, "", "This build supports valuables and monsters only.");
             return;
         }
 
-        var result = SpawnRandomValuable(out var itemName, out var detail);
-        _gateway.CompleteSpawn(requestId, "valuable", result, itemName, detail);
+        var result = SpawnRandomCandidate(category, out var itemName, out var detail);
+        _gateway.CompleteSpawn(requestId, category, result, itemName, detail);
     }
 
-    private void SpawnLocalTestValuable()
+    private void SpawnLocalTest(string category)
     {
-        var success = SpawnRandomValuable(out var itemName, out var detail);
+        var success = SpawnRandomCandidate(category, out var itemName, out var detail);
         _pairingStatus = success ? "Local test spawned: " + itemName : "Local test failed: " + detail;
     }
 
-    private bool SpawnRandomValuable(out string itemName, out string detail)
+    private bool SpawnRandomCandidate(string category, out string itemName, out string detail)
     {
         itemName = "";
         detail = "";
@@ -244,12 +248,13 @@ public sealed class Plugin : BaseUnityPlugin
                 return false;
             }
 
-            if (Catalog.AllowedCandidates.Count == 0)
+            if (!Catalog.AllowedCandidates.Any(row => row.Category == category))
                 Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
 
-            if (Catalog.AllowedCandidates.Count == 0)
+            var candidates = Catalog.AllowedCandidates.Where(row => row.Category == category).ToArray();
+            if (candidates.Length == 0)
             {
-                detail = "No eligible valuable collectibles are available in this level.";
+                detail = "No eligible " + category + " entries are currently available.";
                 return false;
             }
 
@@ -260,7 +265,7 @@ public sealed class Plugin : BaseUnityPlugin
                 return false;
             }
 
-            var candidate = Catalog.AllowedCandidates[UnityEngine.Random.Range(0, Catalog.AllowedCandidates.Count)];
+            var candidate = candidates[UnityEngine.Random.Range(0, candidates.Length)];
             var forward = player.transform.forward;
             forward.y = 0f;
             if (forward.sqrMagnitude < 0.001f)
@@ -277,8 +282,8 @@ public sealed class Plugin : BaseUnityPlugin
         }
         catch (Exception error)
         {
-            detail = "The game rejected the valuable spawn: " + error.Message;
-            Log.LogError("R.E.P.O. valuable spawn failed: " + error);
+            detail = "The game rejected the " + category + " spawn: " + error.Message;
+            Log.LogError("R.E.P.O. " + category + " spawn failed: " + error);
             return false;
         }
     }

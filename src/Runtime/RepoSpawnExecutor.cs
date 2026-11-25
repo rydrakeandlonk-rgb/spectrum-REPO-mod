@@ -1,12 +1,10 @@
+using System;
 using Photon.Pun;
 using UnityEngine;
 
 namespace SpectrumRepoMod.Runtime;
 
-/// <summary>
-/// Executes a selected valuable only on the current host. Multiplayer uses
-/// Photon room-object instantiation so every lobby member receives one object.
-/// </summary>
+/// <summary>Executes supported spawns only on the current host.</summary>
 internal sealed class RepoSpawnExecutor
 {
     public bool TrySpawn(
@@ -22,32 +20,43 @@ internal sealed class RepoSpawnExecutor
             return false;
         }
 
-        if (RunManager.instance == null || LevelGenerator.Instance == null ||
-            GameManager.instance == null || ValuableDirector.instance == null)
+        if (RunManager.instance == null || LevelGenerator.Instance == null || GameManager.instance == null)
         {
-            result = "There is no active R.E.P.O. valuable session.";
+            result = "There is no active R.E.P.O. run.";
             return false;
         }
 
         if (policy == null)
         {
-            result = "The valuable spawn policy is unavailable.";
+            result = "The spawn policy is unavailable.";
             return false;
         }
-
         if (!policy.TryValidate(candidate, out result))
             return false;
 
-        if (!string.Equals(candidate.Category, "valuable", System.StringComparison.Ordinal))
+        if (string.Equals(candidate.Category, "valuable", StringComparison.Ordinal))
+            return TrySpawnValuable(candidate, position, rotation, out result);
+
+        if (string.Equals(candidate.Category, "monster", StringComparison.Ordinal))
+            return TrySpawnMonster(candidate, position, out result);
+
+        result = "This build supports valuables and monsters only.";
+        return false;
+    }
+
+    private static bool TrySpawnValuable(RepoCatalogRow candidate, Vector3 position,
+        Quaternion rotation, out string result)
+    {
+        if (ValuableDirector.instance == null)
         {
-            result = "This test build only supports valuable collectibles.";
+            result = "The valuable director is not ready.";
             return false;
         }
 
         var prefab = candidate.Target.Valuable;
-        if (prefab == null || !prefab.IsValid() || string.IsNullOrWhiteSpace(prefab.ResourcePath))
+        if (prefab == null || !prefab.IsValid())
         {
-            result = "The selected valuable is no longer valid in the current level.";
+            result = "The selected valuable is no longer valid.";
             return false;
         }
 
@@ -60,13 +69,9 @@ internal sealed class RepoSpawnExecutor
 
         GameObject spawned;
         if (PhotonNetwork.CurrentRoom != null)
-        {
             spawned = PhotonNetwork.InstantiateRoomObject(prefab.ResourcePath, position, rotation, 0, null);
-        }
         else
-        {
-            spawned = Object.Instantiate(loadedPrefab, position, rotation);
-        }
+            spawned = UnityEngine.Object.Instantiate(loadedPrefab, position, rotation);
 
         if (spawned == null)
         {
@@ -83,6 +88,44 @@ internal sealed class RepoSpawnExecutor
 
         valuable.DollarValueSetLogic();
         result = "Valuable spawn completed.";
+        return true;
+    }
+
+    private static bool TrySpawnMonster(RepoCatalogRow candidate, Vector3 position, out string result)
+    {
+        var setup = candidate.Target.Monster;
+        if (setup == null || setup.spawnObjects == null || setup.spawnObjects.Count == 0)
+        {
+            result = "The selected monster setup is no longer available.";
+            return false;
+        }
+
+        foreach (var prefabRef in setup.spawnObjects)
+        {
+            if (prefabRef == null || !prefabRef.IsValid() || prefabRef.Prefab == null)
+            {
+                result = "A monster prefab could not be loaded; no spawn was attempted.";
+                return false;
+            }
+        }
+
+        var generator = LevelGenerator.Instance;
+        var director = EnemyDirector.instance;
+        if (generator == null || director == null)
+        {
+            result = "The enemy director is not ready.";
+            return false;
+        }
+
+        var before = director.enemiesSpawned.Count;
+        generator.EnemySpawn(setup, position);
+        if (director.enemiesSpawned.Count <= before)
+        {
+            result = "The game did not confirm a successful monster spawn.";
+            return false;
+        }
+
+        result = "Monster spawn completed.";
         return true;
     }
 }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+- Expand valuable discovery to all currently loaded vanilla presets, not only the active level.
+- Discover loaded vanilla monster setups and active difficulty registries.
+- Add host-authoritative monster spawning through the game's public LevelGenerator.EnemySpawn entry point.
+- Apply separate Control Center enable/disable settings for valuable and monster categories.
+- Add local F8 test controls and catalogue counts for both supported categories.
+- Keep utility-item spawning out of this release until its safe vanilla registry and runtime path can be verified.
+- Retain DLL-only packaging, host checks, request deduplication, and acknowledgement handling.
+
+
 ## 0.4.1
 - Republish the existing 0.4.0 integration test build under a new version number for Vortex/Nexus update detection.
 - No gameplay, networking, catalogue, or spawning behaviour changed.

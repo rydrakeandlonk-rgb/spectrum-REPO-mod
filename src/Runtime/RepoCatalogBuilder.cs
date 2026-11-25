@@ -1,26 +1,52 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Builds the catalogue only from the valuable presets selected by the
-/// currently loaded vanilla level. No unrelated game registries are scanned.
+/// Builds from all currently loaded vanilla valuable presets and enemy setups,
+/// plus the active run's registries. It does not invent catalogue IDs.
 /// </summary>
 internal static class RepoCatalogBuilder
 {
-    public static IReadOnlyList<PrefabRef> GetLevelPrefabRefs()
+    public static RepoCatalogSnapshot Build(RepoRuntimePolicy? policy = null)
     {
-        var level = LevelGenerator.Instance?.Level;
-        if (level == null || level.ValuablePresets == null)
-            return Array.Empty<PrefabRef>();
+        policy ??= new RepoRuntimePolicy();
+        var rows = new List<RepoCatalogRow>();
+        AddValuables(rows, policy);
+        AddMonsters(rows, policy);
+        return new RepoCatalogSnapshot(rows);
+    }
 
+    private static void AddValuables(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
+    {
         var refs = new List<PrefabRef>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var preset in level.ValuablePresets)
+        foreach (var preset in Resources.FindObjectsOfTypeAll<LevelValuables>())
+            AddPreset(preset);
+        var level = LevelGenerator.Instance?.Level;
+        if (level?.ValuablePresets != null)
+            foreach (var preset in level.ValuablePresets)
+                AddPreset(preset);
+
+        foreach (var prefab in refs)
         {
-            if (preset == null) continue;
+            var displayName = string.IsNullOrWhiteSpace(prefab.PrefabName)
+                ? prefab.ResourcePath
+                : prefab.PrefabName;
+            var id = "valuable:" + prefab.ResourcePath;
+            var provisional = new RepoCatalogRow("valuable", id, displayName,
+                RepoSpawnTarget.ForValuable(prefab), true, string.Empty);
+            var allowed = policy.TryValidate(provisional, out var reason);
+            rows.Add(new RepoCatalogRow("valuable", id, displayName, provisional.Target, allowed, reason));
+        }
+
+        void AddPreset(LevelValuables? preset)
+        {
+            if (preset == null) return;
             Add(preset.tiny);
             Add(preset.small);
             Add(preset.medium);
@@ -30,36 +56,67 @@ internal static class RepoCatalogBuilder
             Add(preset.veryTall);
         }
 
-        return refs;
-
         void Add(IEnumerable<PrefabRef>? source)
         {
             if (source == null) return;
             foreach (var prefab in source)
             {
                 if (prefab == null || !prefab.IsValid()) continue;
-                var resourcePath = prefab.ResourcePath;
-                if (string.IsNullOrWhiteSpace(resourcePath) || !seen.Add(resourcePath)) continue;
+                var path = prefab.ResourcePath;
+                if (string.IsNullOrWhiteSpace(path) || !seen.Add(path)) continue;
                 refs.Add(prefab);
             }
         }
     }
 
-    public static RepoCatalogSnapshot Build(RepoRuntimePolicy? policy = null)
+    private static void AddMonsters(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
     {
-        policy ??= new RepoRuntimePolicy();
-        var rows = new List<RepoCatalogRow>();
-        foreach (var prefab in GetLevelPrefabRefs())
+        var setups = new List<EnemySetup>();
+        var seenObjects = new HashSet<int>();
+
+        void Add(IEnumerable<EnemySetup>? source)
         {
-            var displayName = string.IsNullOrWhiteSpace(prefab.PrefabName)
-                ? prefab.ResourcePath
-                : prefab.PrefabName;
-            var id = "valuable:" + prefab.ResourcePath;
-            var target = RepoSpawnTarget.ForValuable(prefab);
-            var provisional = new RepoCatalogRow("valuable", id, displayName, target, true, string.Empty);
-            var allowed = policy.TryValidate(provisional, out var reason);
-            rows.Add(new RepoCatalogRow("valuable", id, displayName, target, allowed, reason));
+            if (source == null) return;
+            foreach (var setup in source)
+            {
+                if (setup == null) continue;
+                var instanceId = setup.GetInstanceID();
+                if (seenObjects.Add(instanceId))
+                    setups.Add(setup);
+            }
         }
-        return new RepoCatalogSnapshot(rows);
+
+        Add(Resources.FindObjectsOfTypeAll<EnemySetup>());
+        var director = EnemyDirector.instance;
+        if (director != null)
+        {
+            Add(director.enemiesDifficulty1);
+            Add(director.enemiesDifficulty2);
+            Add(director.enemiesDifficulty3);
+        }
+
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var setup in setups)
+        {
+            if (setup.spawnObjects == null || setup.spawnObjects.Count == 0) continue;
+            var paths = setup.spawnObjects
+                .Where(prefab => prefab != null && prefab.IsValid())
+                .Select(prefab => prefab.ResourcePath)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToArray();
+            if (paths.Length == 0) continue;
+
+            var name = string.IsNullOrWhiteSpace(setup.name) ? "Unnamed enemy setup" : setup.name;
+            var id = "monster:" + Uri.EscapeDataString(name) + ":" +
+                string.Join("|", paths.Select(Uri.EscapeDataString));
+            if (!seenIds.Add(id)) continue;
+
+            var provisional = new RepoCatalogRow("monster", id, name,
+                RepoSpawnTarget.ForMonster(setup), true, string.Empty);
+            var allowed = policy.TryValidate(provisional, out var reason);
+            rows.Add(new RepoCatalogRow("monster", id, name, provisional.Target, allowed, reason));
+        }
     }
 }
