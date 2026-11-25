@@ -177,7 +177,17 @@ public sealed class Plugin : BaseUnityPlugin
             return;
 
         if (force || levelChanged)
-            Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
+        {
+            try
+            {
+                Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
+            }
+            catch (Exception error)
+            {
+                Catalog = RepoCatalogSnapshot.Empty;
+                Log.LogError("Could not rebuild the current-level valuable catalogue: " + error.Message);
+            }
+        }
 
         _gateway.SendSessionState(runActive, lobbyId, isMaster);
         if (force || stateChanged || levelChanged)
