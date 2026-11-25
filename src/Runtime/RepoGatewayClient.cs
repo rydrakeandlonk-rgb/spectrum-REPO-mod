@@ -222,7 +222,7 @@ public sealed class RepoGatewayClient
         }
     }
 
-    private void PublishCatalogue()
+    public void PublishCatalogue()
     {
         var catalog = Plugin.Catalog;
         if (catalog == null) return;
