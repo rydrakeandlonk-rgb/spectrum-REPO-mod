@@ -16,7 +16,7 @@ dotnet build $project --configuration Release --no-restore
 if ($LASTEXITCODE -ne 0) { throw "The R.E.P.O. plugin build failed." }
 
 $required = @(
-    (Join-Path $stage "BepInEx/plugins/SpectrumRepoMod.dll"),
+    (Join-Path $stage "SpectrumRepoMod.dll"),
     (Join-Path $stage "manifest.json"),
     (Join-Path $stage "README.md"),
     (Join-Path $stage "CHANGELOG.md"),
@@ -24,6 +24,9 @@ $required = @(
 )
 foreach ($file in $required) {
     if (!(Test-Path $file)) { throw "Package output is missing: $file" }
+}
+if (Test-Path (Join-Path $stage "BepInEx")) {
+    throw "Vortex package must not contain a BepInEx directory; ship the plugin DLL as a standalone file."
 }
 
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -CompressionLevel Optimal
