@@ -1,0 +1,63 @@
+using UnityEngine;
+
+public class ValuableDiscover : MonoBehaviour
+{
+	public static ValuableDiscover instance;
+
+	public GameObject graphicPrefab;
+
+	public RectTransform canvasRect;
+
+	private CanvasGroup canvasGroup;
+
+	private float hideTimer;
+
+	internal float hideAlpha = 1f;
+
+	[RuntimeInitializeOnLoadMethod(/*Could not decode attribute arguments.*/)]
+	private static void RuntimeInitializeOnLoad()
+	{
+		instance = null;
+	}
+
+	private void Awake()
+	{
+		instance = this;
+		canvasGroup = ((Component)this).GetComponent<CanvasGroup>();
+	}
+
+	private void Update()
+	{
+		float num = 1f;
+		if (hideTimer > 0f)
+		{
+			num = 0f;
+			hideTimer -= Time.deltaTime;
+		}
+		hideAlpha = Mathf.Lerp(hideAlpha, num, Time.deltaTime * 20f);
+		canvasGroup.alpha = hideAlpha;
+	}
+
+	public void New(PhysGrabObject _target, ValuableDiscoverGraphic.State _state, ValuableDiscoverCustom _custom = null)
+	{
+		ValuableDiscoverGraphic component = Object.Instantiate<GameObject>(graphicPrefab, ((Component)this).transform).GetComponent<ValuableDiscoverGraphic>();
+		component.target = _target;
+		if (_state == ValuableDiscoverGraphic.State.Reminder)
+		{
+			component.ReminderSetup();
+		}
+		if (_state == ValuableDiscoverGraphic.State.Bad)
+		{
+			component.BadSetup();
+		}
+		if (_state == ValuableDiscoverGraphic.State.Custom)
+		{
+			component.CustomSetup(_custom);
+		}
+	}
+
+	public void Hide()
+	{
+		hideTimer = 0.1f;
+	}
+}
