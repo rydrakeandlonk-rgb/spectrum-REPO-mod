@@ -63,6 +63,8 @@ var matches = assembly.MainModule.Types
             .Select(m => new
             {
                 name = m.Name,
+                attributes = m.Attributes.ToString(),
+                isPublic = m.IsPublic,
                 returnType = m.ReturnType.FullName,
                 isStatic = m.IsStatic,
                 parameters = m.Parameters.Select(p => new { name = p.Name, type = p.ParameterType.FullName }).ToArray(),
