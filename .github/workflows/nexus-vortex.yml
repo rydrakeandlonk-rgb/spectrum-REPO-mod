@@ -62,6 +62,9 @@ jobs:
           grep -q '<Compile Include="Runtime/RepoPairingClient.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoGatewayClient.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoCatalogBuilder.cs"' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Runtime/RepoValuableCatalogue.cs"' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Runtime/RepoMonsterCatalogue.cs"' src/SpectrumRepoMod.csproj
+          grep -q '<Compile Include="Runtime/RepoUtilityItemCatalogue.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoSpawnExecutor.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoSpawnRegistry.cs"' src/SpectrumRepoMod.csproj
           grep -q 'PluginVersion = "0.7.0"' src/Plugin.cs
