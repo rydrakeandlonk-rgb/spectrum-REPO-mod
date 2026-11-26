@@ -8,7 +8,7 @@ namespace SpectrumRepoMod.Runtime;
 /// <summary>Discovers and validates valuable prefab references.</summary>
 internal static class RepoValuableCatalogue
 {
-public static void AddRowsList<RepoCatalogRow> rows, RepoRuntimePolicy policy)
+public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
     {
         var refs = new List<PrefabRef>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
