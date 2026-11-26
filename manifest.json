@@ -1,6 +1,6 @@
 {
   "name": "Spectrum_REPO_Mod",
-  "version_number": "0.6.2",
+  "version_number": "0.6.3",
   "website_url": "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod",
   "description": "Spectrum R.E.P.O. integration test build with separate Valuables, Monsters and component-discovered approved non-combat shop item test pool.",
   "dependencies": [
