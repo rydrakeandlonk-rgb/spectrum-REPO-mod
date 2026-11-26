@@ -70,7 +70,7 @@ internal static class RepoUtilityItemCatalogue
         new("LeafBlower", "Leaf Blower", "leaf_blower"),
     };
 
-public static void AddRowsList<RepoCatalogRow> rows, RepoRuntimePolicy policy)
+public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
     {
         // The game does not consistently expose shop prefab identifiers through
         // PrefabName. Discover only the approved non-combat families by their
