@@ -1,14 +1,21 @@
 # Changelog
 
+## 0.6.0
+- Add a separate Tools catalogue for the 12 listed upgrades, 5 listed drones and 2 C.A.R.T.s.
+- Discover only the approved shop entries by their exact vanilla prefab names.
+- Validate upgrade, drone and physical-item components before allowing a Tools entry to spawn.
+- Apply the existing Control Center Shop utility items enable/disable setting.
+- Add the Tools catalogue count and local F8 test button.
+- Preserve the existing valuable and monster catalogue and spawn paths.
+- Retain host-only execution, request deduplication, catalogue publication and DLL-only Vortex packaging.
+
 ## 0.5.0
 - Expand valuable discovery to all currently loaded vanilla presets, not only the active level.
 - Discover loaded vanilla monster setups and active difficulty registries.
 - Add host-authoritative monster spawning through the game's public LevelGenerator.EnemySpawn entry point.
 - Apply separate Control Center enable/disable settings for valuable and monster categories.
 - Add local F8 test controls and catalogue counts for both supported categories.
-- Keep utility-item spawning out of this release until its safe vanilla registry and runtime path can be verified.
 - Retain DLL-only packaging, host checks, request deduplication, and acknowledgement handling.
-
 
 ## 0.4.1
 - Republish the existing 0.4.0 integration test build under a new version number for Vortex/Nexus update detection.
