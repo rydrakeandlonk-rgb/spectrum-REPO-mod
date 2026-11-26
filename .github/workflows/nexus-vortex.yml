@@ -96,7 +96,6 @@ jobs:
           echo "Verified DLL-only Vortex install package: $package"
 
       - name: Upload installable package artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: Spectrum_REPO_Mod-${{ steps.verify.outputs.version }}
