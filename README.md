@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.6.2 discovers approved non-combat upgrades by their runtime component, with safe identifier matching for the existing approved drone and C.A.R.T. entries.** The F8 panel supports Twitch pairing, the Spectrum Game Mods gateway, run/lobby/host reporting, local test spawns, and live catalogue publication.
+**Version 0.6.3 discovers approved non-combat upgrades by their runtime component, with safe identifier matching for the existing approved drone and C.A.R.T. entries.** The F8 panel supports Twitch pairing, the Spectrum Game Mods gateway, run/lobby/host reporting, local test spawns, and live catalogue publication.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ The install archive contains exactly one file: `SpectrumRepoMod.dll` at the arch
 
 The host credential is private. Do not post or share the contents of the mod configuration file.
 
-## 0.6.2 test scope
+## 0.6.3 test scope
 
 - Valuables are discovered from all currently loaded vanilla valuable presets and the active level.
 - Monsters are discovered from loaded vanilla EnemySetup assets and the active difficulty registries.
