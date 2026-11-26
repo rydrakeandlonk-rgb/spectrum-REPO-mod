@@ -8,6 +8,7 @@ namespace SpectrumRepoMod.API
     public enum RepoUtilityItemKind
     {
         Upgrade,
+        HealthPack,
         Drone,
         Cart,
         Tracker,
@@ -44,6 +45,7 @@ namespace SpectrumRepoMod.API
             var kindId = kind switch
             {
                 RepoUtilityItemKind.Upgrade => "upgrade",
+                RepoUtilityItemKind.HealthPack => "health_pack",
                 RepoUtilityItemKind.Drone => "drone",
                 RepoUtilityItemKind.Cart => "cart",
                 RepoUtilityItemKind.Tracker => "tracker",
