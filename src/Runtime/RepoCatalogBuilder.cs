@@ -169,7 +169,9 @@ internal static class RepoCatalogBuilder
 
     private static void AddUtilityItems(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
     {
-        // PrefabRef.Prefab resolves through RunManager's active resource pools.
+        // The game does not consistently expose shop prefab identifiers through
+        // PrefabName. Discover only the approved non-combat families by their
+        // runtime components, then use known item-name aliases as a fallback.
         if (RunManager.instance == null)
         {
             Plugin.Log.LogInfo("Shop item catalogue: waiting for an active RunManager.");
@@ -179,35 +181,94 @@ internal static class RepoCatalogBuilder
         var loadedItems = Resources.FindObjectsOfTypeAll<Item>();
         var matched = 0;
         var eligible = 0;
+        var upgradeMatches = 0;
+        var droneMatches = 0;
+        var cartMatches = 0;
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var item in loadedItems)
         {
-            if (item == null || item.prefab == null || !item.prefab.IsValid())
+            if (item == null || item.disabled || item.prefab == null || !item.prefab.IsValid())
                 continue;
 
-            var prefabName = item.prefab.PrefabName;
-            if (string.IsNullOrWhiteSpace(prefabName) ||
-                !UtilityItemsByPrefab.TryGetValue(prefabName, out var definition))
+            var prefab = item.prefab.Prefab;
+            if (prefab == null)
                 continue;
 
-            var path = item.prefab.ResourcePath;
+            var itemName = item.name ?? string.Empty;
+            var prefabName = item.prefab.PrefabName ?? string.Empty;
+            var resourcePath = item.prefab.ResourcePath ?? string.Empty;
+            var identity = NormalizeIdentity(itemName + " " + prefabName + " " + resourcePath);
+
+            // Upgrades are identified by their dedicated game component. This
+            // avoids relying on prefab display names, which vary between builds.
+            var isUpgrade = prefab.GetComponentInChildren<ItemUpgrade>(true) != null;
+
+            // Keep drones on the existing approved list; identify them by any
+            // of the item's exposed safe identifiers rather than PrefabName alone.
+            var isApprovedDrone = UtilityItemDefinitions.Any(definition =>
+                definition.Kind == "drone" &&
+                IdentityMatches(identity, NormalizeIdentity(definition.PrefabName),
+                    NormalizeIdentity(definition.DisplayName)));
+
+            // C.A.R.T.s must be physical items and explicitly identify as a cart.
+            var isCart = item.physicalItem && identity.Contains("cart");
+
+            if (!isUpgrade && !isApprovedDrone && !isCart)
+                continue;
+
+            var kind = isUpgrade ? "upgrade" : isApprovedDrone ? "drone" : "cart";
+            var definition = UtilityItemDefinitions.FirstOrDefault(candidate =>
+                candidate.Kind == kind &&
+                IdentityMatches(identity, NormalizeIdentity(candidate.PrefabName),
+                    NormalizeIdentity(candidate.DisplayName)));
+
+            var path = string.IsNullOrWhiteSpace(resourcePath) ? prefabName : resourcePath;
+            if (string.IsNullOrWhiteSpace(path))
+                path = itemName;
             if (string.IsNullOrWhiteSpace(path) || !seenPaths.Add(path))
                 continue;
 
+            var displayName = definition?.DisplayName;
+            if (string.IsNullOrWhiteSpace(displayName))
+                displayName = string.IsNullOrWhiteSpace(itemName) ? prefabName : itemName;
+            if (string.IsNullOrWhiteSpace(displayName))
+                displayName = kind == "upgrade" ? "Shop upgrade" :
+                    kind == "drone" ? "Approved drone" : "C.A.R.T.";
+
+            if (kind == "upgrade") upgradeMatches++;
+            else if (kind == "drone") droneMatches++;
+            else cartMatches++;
+
             var id = "utility_item:" + path;
-            var target = RepoSpawnTarget.ForUtilityItem(item, definition.Kind);
-            matched++;
-            var provisional = new RepoCatalogRow("utility_item", id, definition.DisplayName,
+            var target = RepoSpawnTarget.ForUtilityItem(item, kind);
+            var provisional = new RepoCatalogRow("utility_item", id, displayName,
                 target, true, string.Empty);
             var allowed = policy.TryValidate(provisional, out var reason);
             if (allowed) eligible++;
-            else Plugin.Log.LogWarning("Shop item catalogue excluded " + definition.DisplayName + ": " + reason);
-            rows.Add(new RepoCatalogRow("utility_item", id, definition.DisplayName,
-                target, allowed, reason));
+            else Plugin.Log.LogWarning("Shop item catalogue excluded " + displayName + ": " + reason);
+            matched++;
+            rows.Add(new RepoCatalogRow("utility_item", id, displayName, target, allowed, reason));
         }
 
         Plugin.Log.LogInfo("Shop item catalogue diagnostic: loaded Item assets=" + loadedItems.Length +
             ", matched approved non-combat entries=" + matched +
-            ", eligible=" + eligible + ", approved definitions=" + UtilityItemDefinitions.Length + ".");
+            " (upgrades=" + upgradeMatches + ", approved drones=" + droneMatches +
+            ", carts=" + cartMatches + "), eligible=" + eligible +
+            ", approved definitions=" + UtilityItemDefinitions.Length + ".");
+
+        static string NormalizeIdentity(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            var chars = value.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray();
+            return new string(chars);
+        }
+
+        static bool IdentityMatches(string identity, string prefabAlias, string displayAlias)
+        {
+            if (string.IsNullOrWhiteSpace(identity)) return false;
+            return (!string.IsNullOrWhiteSpace(prefabAlias) && identity.Contains(prefabAlias)) ||
+                (!string.IsNullOrWhiteSpace(displayAlias) && identity.Contains(displayAlias));
+        }
     }
 }
