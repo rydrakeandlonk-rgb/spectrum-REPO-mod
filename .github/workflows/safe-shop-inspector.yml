@@ -1,0 +1,38 @@
+name: Inspect safe R.E.P.O. shop item metadata
+
+on:
+  push:
+    branches: ["research/safe-shop-catalogue"]
+    paths:
+      - "tools/GameAssemblyInspector/**"
+      - ".github/workflows/safe-shop-inspector.yml"
+      - "Uploads/Managed/Assembly-CSharp.dll"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Inspect upgrades, drones and C.A.R.T. types only
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Inspect only the agreed safe shop types
+        run: |
+          dotnet run --project tools/GameAssemblyInspector/GameAssemblyInspector.csproj --configuration Release -- Uploads/Managed/Assembly-CSharp.dll safe-shop-metadata.json > safe-shop-metadata.log
+      - name: Upload targeted metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-safe-shop-metadata
+          path: |
+            safe-shop-metadata.json
+            safe-shop-metadata.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Print summary
+        run: grep -E '"type"|"name"|SAFE_SHOP_METADATA_COMPLETE' safe-shop-metadata.log | head -n 500
