@@ -85,6 +85,7 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
         var matched = 0;
         var eligible = 0;
         var upgradeMatches = 0;
+        var healthPackMatches = 0;
         var droneMatches = 0;
         var cartMatches = 0;
         var trackerMatches = 0;
@@ -111,8 +112,8 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
             var isUpgrade = prefab.GetComponentInChildren<ItemUpgrade>(true) != null;
             var isHealthPack = prefab.GetComponentInChildren<ItemHealthPack>(true) != null;
 
-            // Keep drones on the existing approved list; identify them by any
-            // of the item's exposed safe identifiers rather than PrefabName alone.
+            // Any loaded ItemDrone is discoverable, including drones added by
+            // other mods. Known aliases remain as a fallback for vanilla assets.
             var isApprovedDrone = prefab.GetComponentInChildren<ItemDrone>(true) != null ||
                 UtilityItemDefinitions.Any(definition =>
                     definition.Kind == "drone" &&
@@ -160,7 +161,8 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
                     kind == "walkie_box" ? "Walkie Talkie Box" :
                     kind == "walkie_talkie" ? "Walkie Talkie" : "Leaf Blower";
 
-            if (kind == "upgrade" || kind == "health_pack") upgradeMatches++;
+            if (kind == "upgrade") upgradeMatches++;
+            else if (kind == "health_pack") healthPackMatches++;
             else if (kind == "drone") droneMatches++;
             else if (kind == "cart") cartMatches++;
             else if (kind == "tracker") trackerMatches++;
@@ -176,11 +178,11 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
             rows.Add(new RepoCatalogRow("utility_item", id, displayName, target, allowed, reason));
         }
 
-        var toolMatches = matched - upgradeMatches - droneMatches - cartMatches - trackerMatches;
+        var toolMatches = matched - upgradeMatches - healthPackMatches - droneMatches - cartMatches - trackerMatches;
         Plugin.Log.LogInfo("Shop item catalogue diagnostic: loaded Item assets=" + loadedItems.Length +
             ", matched approved non-combat entries=" + matched +
-            " (upgrades=" + upgradeMatches + ", drones=" + droneMatches +
-            ", carts=" + cartMatches + ", trackers=" + trackerMatches +
+            " (upgrades=" + upgradeMatches + ", health packs=" + healthPackMatches +
+            ", drones=" + droneMatches + ", carts=" + cartMatches + ", trackers=" + trackerMatches +
             ", utility tools=" + toolMatches + "), eligible=" + eligible +
             ", approved definitions=" + UtilityItemDefinitions.Length + ".");
 
