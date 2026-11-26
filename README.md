@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.6.2 discovers approved non-combat upgrades by their runtime component, with safe identifier matching for the existing approved drone and C.A.R.T. entries.** The F8 panel supports Twitch pairing, the Spectrum Game Mods gateway, run/lobby/host reporting, local test spawns, and live catalogue publication.
+**Version 0.7.0 introduces mod-aware catalogue discovery and a public registration API.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
 
 ## Requirements
 
@@ -19,34 +19,54 @@ Spectrum's R.E.P.O. integration mod.
 
 The install archive contains exactly one file: `SpectrumRepoMod.dll` at the archive root.
 
-## Connect Twitch
+## Catalogue discovery
 
-1. Open the F8 panel.
-2. Select **Connect Twitch**.
-3. Approve the displayed code in Control Center.
-4. Return to the game. The mod saves its private host credential locally and connects to the gateway.
+- **Valuables:** discovers valid prefab references from every loaded `LevelValuables` preset and the active level. Modded valuables included in those presets are eligible when they expose a valid `ValuableObject` prefab and resource path.
+- **Monsters:** discovers loaded `EnemySetup` assets and the active difficulty registries. Modded setups are included when they expose valid spawn prefab references.
+- **Shop utility items:** discovers loaded `Item` assets by verified game behaviours (upgrades, drones, trackers and supported tools), plus the existing cart identity rules. Names are used for display aliases, not as the sole safety check.
+- **Late-loaded content:** the catalogue is rebuilt at level changes and on a bounded 30-second refresh, so mods that finish loading after the initial scan can be picked up.
+- **Control Center compatibility:** existing category IDs remain `valuable`, `monster` and `utility_item`. No backend category migration is required.
+- **Host authority:** only the current R.E.P.O. host executes shared spawns. The existing spawn executor remains the single spawning pathway.
 
-The host credential is private. Do not post or share the contents of the mod configuration file.
+## Mod author registration API
 
-## 0.6.2 test scope
+A mod can register content that is loaded but not exposed through the game's normal registries. Reference `SpectrumRepoMod.dll` and call the public API after its assets are ready:
 
-- Valuables are discovered from all currently loaded vanilla valuable presets and the active level.
-- Monsters are discovered from loaded vanilla EnemySetup assets and the active difficulty registries.
-- Shop items remain limited to approved non-combat upgrades, the existing approved drone list and physical C.A.R.T.s. Upgrades are discovered through their dedicated runtime component rather than relying on prefab display names. The log reports counts by safe item family.
-- Upgrade, drone and cart entries are checked against their expected vanilla item components before being marked eligible.
-- Tools use the existing Control Center **Shop utility items** category toggle.
-- Only the current R.E.P.O. host executes shared spawns.
-- Requests are deduplicated locally before execution.
-- The F8 panel provides local test buttons for Valuables, Monsters and Shop Items.
-- Twitch reward delivery is not enabled in this test build.
+```csharp
+using SpectrumRepoMod.API;
+
+// A valuable must use a real game PrefabRef with a valid resource path.
+RepoSpawnRegistry.RegisterValuable("my-mod:crystal-vase", "Crystal Vase", valuablePrefabRef);
+
+// An EnemySetup must contain valid spawnObjects.
+RepoSpawnRegistry.RegisterMonster("my-mod:custom-enemy", "Custom Enemy", enemySetup);
+
+// NonCombatPhysical is an explicit assertion by the registering mod author.
+// Spectrum still checks ItemAttributes, physicalItem, and known combat components.
+RepoSpawnRegistry.RegisterUtilityItem(
+    "my-mod:utility-item",
+    "My Utility Item",
+    itemAsset,
+    RepoUtilityItemKind.NonCombatPhysical);
+```
+
+Registration IDs should be stable and unique within their category. Re-registering an ID replaces its previous definition; `Unregister(category, stableId)` removes it. Registrations are revalidated whenever the catalogue is rebuilt.
+
+### Compatibility limits
+
+Automatic discovery can only find assets that a mod has loaded and exposed through Unity/game registries. A mod that keeps an asset private, does not provide a usable `PrefabRef`, or does not register a network prefab cannot be made spawnable through reflection alone. Such mods should use the registration API and ensure their multiplayer prefab is registered with the game's networking system.
+
+Unknown shop item types are deliberately not auto-approved. Mod authors can explicitly register a confirmed non-combat physical item; known combat component families are still rejected.
 
 ## Validation required
 
-- Confirm the approved Shop Items entries appear in Control Center and review the BepInEx log for matched/eligible counts.
-- Test at least one upgrade, drone and each C.A.R.T. type in single-player.
-- Test Tools in a private multiplayer lobby and confirm every member sees one spawn.
-- Verify the Shop utility items toggle blocks Tools requests when disabled.
-- Confirm existing valuable and monster spawning still works.
+- Confirm vanilla valuables, monsters, upgrades, drones, trackers, carts and tools still appear.
+- Test a modded valuable included in a loaded `LevelValuables` preset.
+- Test a registered modded valuable in single-player and a private multiplayer lobby.
+- Test a modded `EnemySetup` through both automatic discovery and explicit registration where supported.
+- Confirm a registered combat item is rejected by the non-combat validation profile.
+- Verify Control Center category toggles still block their respective categories.
+- Verify late-loaded assets appear after the catalogue refresh.
 - Verify reconnect and host-migration behaviour.
 
-This is a hidden testing release, not a public feature-complete release.
+This is a hidden testing release. A successful source commit or CI build does not by itself confirm an in-game compatibility test.
