@@ -49,6 +49,33 @@ internal static class RepoCatalogBuilder
         new("DroneFeather", "Feather Drone", "drone"),
         new("DroneZeroGravity", "Zero Gravity Drone", "drone"),
 
+        new("HealthSmall", "Small Health Pack", "healthsmall"),
+        new("HealthMedium", "Medium Health Pack", "healthmedium"),
+        new("HealthLarge", "Large Health Pack", "healthlarge"),
+
+        new("Gun","gun"),
+        new("Human Gun", "human gun"),
+        new("Shotgun","shotgun"),
+        new("Tranq Gun","tranq gun","tranq"),
+        new("Pulse Pistol","pulse pistol"),
+        new("Photon Blaster","photon blaster","blaster"),
+        new("Boltzap","boltzap"),
+
+        new("Scout", "Scout", "scout"),
+        new("Hauler", "Hauler", "hauler"),
+
+        new("EnergyCrystal", "Energy Crystal", "energycrystal"),
+        new("ZeroGravityOrb", "Zero Gravity Orb", "zerogravityorb"),
+        new("Chargingorb", "Charging Orb", "chargingorb"),
+        new("Duck Bucket", "Duck Bucket", "duckbucket"),
+        new("Phase Bridge R.E.P.O.", "Phase Bridge", "phasebridgerepo"),
+        new("Semibot walkiee", "Semibot Walkies", "semibotwalkiee"),
+        new("Defibro transparent", "Defibro", "defibrotransparent"),
+        new("LeafBlower", "Leaf Blower", "leafblower"),
+
+        new("TrackerValuable", "Valuable Tracker", "trackervaluable"),
+        new("TrackerExtraction", "Extraction Tracker", "trackerextraction"),
+
         new("CartSmall", "Pocket C.A.R.T.", "cart"),
         new("CartBig", "C.A.R.T.", "cart")
     };
