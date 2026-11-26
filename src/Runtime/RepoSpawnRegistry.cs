@@ -69,7 +69,15 @@ namespace SpectrumRepoMod.API
 
             foreach (var registered in snapshot)
             {
-                if (rows.Exists(row => row.Category == registered.Category && row.Id == registered.Id))
+                var alreadyDiscovered = rows.Exists(row =>
+                    row.Category == registered.Category &&
+                    (string.Equals(row.Id, registered.Id, StringComparison.OrdinalIgnoreCase) ||
+                     (row.Target.Valuable != null && registered.Target.Valuable != null &&
+                      string.Equals(row.Target.Valuable.ResourcePath,
+                          registered.Target.Valuable.ResourcePath, StringComparison.OrdinalIgnoreCase)) ||
+                     (row.Target.Monster != null && row.Target.Monster == registered.Target.Monster) ||
+                     (row.Target.UtilityItem != null && row.Target.UtilityItem == registered.Target.UtilityItem)));
+                if (alreadyDiscovered)
                     continue;
 
                 if (registered.Category == "utility_item" && RunManager.instance == null)
