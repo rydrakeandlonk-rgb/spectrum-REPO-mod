@@ -16,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.6.0";
+    public const string PluginVersion = "0.6.1";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -260,7 +260,19 @@ public sealed class Plugin : BaseUnityPlugin
             var candidates = Catalog.AllowedCandidates.Where(row => row.Category == category).ToArray();
             if (candidates.Length == 0)
             {
-                detail = "No eligible " + category + " entries are currently available.";
+                if (category == "utility_item")
+                {
+                    var matched = Catalog.Rows.Count(row => row.Category == category);
+                    var excluded = Catalog.Rows.FirstOrDefault(row => row.Category == category && !row.Allowed);
+                    detail = matched == 0
+                        ? "No approved non-combat shop entries matched the loaded game assets. Check the BepInEx log for the catalogue diagnostic."
+                        : matched + " approved shop entries matched, but none passed validation. First exclusion: " +
+                            (excluded?.DisplayName ?? "unknown") + " — " + (excluded?.ExclusionReason ?? "no reason reported");
+                }
+                else
+                {
+                    detail = "No eligible " + category + " entries are currently available.";
+                }
                 return false;
             }
 
