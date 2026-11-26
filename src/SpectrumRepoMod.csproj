@@ -7,7 +7,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>SpectrumRepoMod</AssemblyName>
     <RootNamespace>SpectrumRepoMod</RootNamespace>
-    <Version>0.6.3</Version>
+    <Version>0.7.0</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -20,6 +20,7 @@
     <Compile Include="Runtime/RepoCatalogBuilder.cs" />
     <Compile Include="Runtime/RepoSpawnExecutor.cs" />
     <Compile Include="Runtime/RepoSpawnTarget.cs" />
+    <Compile Include="Runtime/RepoSpawnRegistry.cs" />
   </ItemGroup>
 
   <ItemGroup>
