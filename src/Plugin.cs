@@ -16,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.6.1";
+    public const string PluginVersion = "0.6.2";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -53,7 +53,7 @@ public sealed class Plugin : BaseUnityPlugin
         _gateway.Start();
 
         _showPanel = !_gateway.IsConfigured;
-        Log.LogInfo("Spectrum R.E.P.O. Mod 0.6.0 initialised. Press F8 to open its panel.");
+        Log.LogInfo(PluginName + " " + PluginVersion + " initialised. Press F8 to open its panel.");
     }
 
     private void Start()
