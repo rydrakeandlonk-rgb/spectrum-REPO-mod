@@ -202,7 +202,7 @@ public sealed class Plugin : BaseUnityPlugin
             }
         }
 
-        _gateway.SendSessionState(runActive, lobbyId, isMaster);
+        _gateway.SendSessionState(runActive, lobbyId, isMaster, PhotonNetwork.LocalPlayer?.ActorNumber ?? 0);
         if (force || stateChanged || levelChanged || catalogueRefreshDue)
             _gateway.PublishCatalogue(runActive, lobbyId, isMaster);
 
@@ -352,7 +352,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static PlayerAvatar? ResolveTargetPlayer(int photonId)
     {
-        if (photonId <= 0) return null;
+        if (photonId <= 0) return PhotonNetwork.CurrentRoom == null ? PlayerAvatar.instance : null;
         try
         {
             var method = typeof(SemiFunc).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
