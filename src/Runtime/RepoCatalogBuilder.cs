@@ -170,10 +170,17 @@ internal static class RepoCatalogBuilder
     private static void AddUtilityItems(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
     {
         // PrefabRef.Prefab resolves through RunManager's active resource pools.
-        if (RunManager.instance == null) return;
+        if (RunManager.instance == null)
+        {
+            Plugin.Log.LogInfo("Shop item catalogue: waiting for an active RunManager.");
+            return;
+        }
 
+        var loadedItems = Resources.FindObjectsOfTypeAll<Item>();
+        var matched = 0;
+        var eligible = 0;
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in Resources.FindObjectsOfTypeAll<Item>())
+        foreach (var item in loadedItems)
         {
             if (item == null || item.prefab == null || !item.prefab.IsValid())
                 continue;
@@ -189,11 +196,18 @@ internal static class RepoCatalogBuilder
 
             var id = "utility_item:" + path;
             var target = RepoSpawnTarget.ForUtilityItem(item, definition.Kind);
+            matched++;
             var provisional = new RepoCatalogRow("utility_item", id, definition.DisplayName,
                 target, true, string.Empty);
             var allowed = policy.TryValidate(provisional, out var reason);
+            if (allowed) eligible++;
+            else Plugin.Log.LogWarning("Shop item catalogue excluded " + definition.DisplayName + ": " + reason);
             rows.Add(new RepoCatalogRow("utility_item", id, definition.DisplayName,
                 target, allowed, reason));
         }
+
+        Plugin.Log.LogInfo("Shop item catalogue diagnostic: loaded Item assets=" + loadedItems.Length +
+            ", matched approved non-combat entries=" + matched +
+            ", eligible=" + eligible + ", approved definitions=" + UtilityItemDefinitions.Length + ".");
     }
 }
