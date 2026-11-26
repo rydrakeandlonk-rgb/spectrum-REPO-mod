@@ -6,8 +6,8 @@ using UnityEngine;
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Builds the valuable and monster catalogues, plus a strict allowlist of
-/// verified vanilla upgrades, drones and C.A.R.T.s from loaded Item assets.
+/// Builds the valuable and monster catalogues, plus an explicit allowlist of
+/// verified vanilla upgrades, drones, C.A.R.T.s and utility tools from loaded Item assets.
 /// </summary>
 internal static class RepoCatalogBuilder
 {
@@ -62,20 +62,13 @@ internal static class RepoCatalogBuilder
         new("Phase Bridge R.E.P.O.", "Phase Bridge", "drone"),
         new("Semibot walkiee", "Semibot Walkies", "drone"),
         new("Defibro transparent", "Defibro", "drone"),
-        new("LeafBlower", "Leaf Blower", "drone"),
-
-        new("TrackerValuable", "Valuable Tracker", "trackervaluable"),
-        new("TrackerExtraction", "Extraction Tracker", "trackerextraction"),
-
         new("CartSmall", "Pocket C.A.R.T.", "cart"),
-        new("CartBig", "C.A.R.T.", "cart")
-        new("Scout", "Scout", "cart"),
-        new("Hauler", "Hauler", "cart"),
-    };
+        new("CartBig", "C.A.R.T.", "cart"),
 
-    private static readonly Dictionary<string, UtilityItemDefinition> UtilityItemsByPrefab =
-        UtilityItemDefinitions.ToDictionary(definition => definition.PrefabName,
-            StringComparer.OrdinalIgnoreCase);
+        new("WalkieBox", "Walkie Talkie Box", "walkie_box"),
+        new("WalkieTalkie", "Walkie Talkie", "walkie_talkie"),
+        new("LeafBlower", "Leaf Blower", "leaf_blower"),
+    };
 
     public static RepoCatalogSnapshot Build(RepoRuntimePolicy? policy = null)
     {
@@ -218,7 +211,9 @@ internal static class RepoCatalogBuilder
             var itemName = item.name ?? string.Empty;
             var prefabName = item.prefab.PrefabName ?? string.Empty;
             var resourcePath = item.prefab.ResourcePath ?? string.Empty;
-            var identity = NormalizeIdentity(itemName + " " + prefabName + " " + resourcePath);
+            var itemDisplayName = item.itemName ?? string.Empty;
+            var identity = NormalizeIdentity(itemName + " " + itemDisplayName + " " +
+                prefabName + " " + resourcePath);
 
             // Upgrades are identified by their dedicated game component. This
             // avoids relying on prefab display names, which vary between builds.
@@ -234,10 +229,15 @@ internal static class RepoCatalogBuilder
             // C.A.R.T.s must be physical items and explicitly identify as a cart.
             var isCart = item.physicalItem && identity.Contains("cart");
 
-            if (!isUpgrade && !isApprovedDrone && !isCart)
+            // These tools are admitted only by their exact vanilla behaviour
+            // components. Names alone never make an otherwise unknown item safe.
+            var toolKind = GetApprovedToolKind(prefab);
+
+            if (!isUpgrade && !isApprovedDrone && !isCart && string.IsNullOrEmpty(toolKind))
                 continue;
 
-            var kind = isUpgrade ? "upgrade" : isApprovedDrone ? "drone" : "cart";
+            var kind = isUpgrade ? "upgrade" : isApprovedDrone ? "drone" :
+                isCart ? "cart" : toolKind;
             var definition = UtilityItemDefinitions.FirstOrDefault(candidate =>
                 candidate.Kind == kind &&
                 IdentityMatches(identity, NormalizeIdentity(candidate.PrefabName),
@@ -254,7 +254,10 @@ internal static class RepoCatalogBuilder
                 displayName = string.IsNullOrWhiteSpace(itemName) ? prefabName : itemName;
             if (string.IsNullOrWhiteSpace(displayName))
                 displayName = kind == "upgrade" ? "Shop upgrade" :
-                    kind == "drone" ? "Approved drone" : "C.A.R.T.";
+                    kind == "drone" ? "Approved drone" :
+                    kind == "cart" ? "C.A.R.T." :
+                    kind == "walkie_box" ? "Walkie Talkie Box" :
+                    kind == "walkie_talkie" ? "Walkie Talkie" : "Leaf Blower";
 
             if (kind == "upgrade") upgradeMatches++;
             else if (kind == "drone") droneMatches++;
@@ -289,6 +292,17 @@ internal static class RepoCatalogBuilder
             if (string.IsNullOrWhiteSpace(identity)) return false;
             return (!string.IsNullOrWhiteSpace(prefabAlias) && identity.Contains(prefabAlias)) ||
                 (!string.IsNullOrWhiteSpace(displayAlias) && identity.Contains(displayAlias));
+        }
+
+        static string GetApprovedToolKind(GameObject prefab)
+        {
+            if (prefab.GetComponentInChildren<ItemWalkieBox>(true) != null)
+                return "walkie_box";
+            if (prefab.GetComponentInChildren<ItemWalkieTalkie>(true) != null)
+                return "walkie_talkie";
+            if (prefab.GetComponentInChildren<ItemLeafBlower>(true) != null)
+                return "leaf_blower";
+            return string.Empty;
         }
     }
 }
