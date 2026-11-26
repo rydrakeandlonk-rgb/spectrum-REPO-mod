@@ -7,7 +7,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>SpectrumRepoMod</AssemblyName>
     <RootNamespace>SpectrumRepoMod</RootNamespace>
-    <Version>0.6.0</Version>
+    <Version>0.6.1</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
