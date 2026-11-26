@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1
+- Allow Control Center development sessions to start without an existing Channel Points reward.
+- Keep redemption acceptance gated until subscription and reward activation are explicitly ready.
+- Avoid unnecessary reward-manager calls when stopping or automatically closing development-only sessions.
+- Resolve F8 local spawn tests directly against the local player avatar.
+- Log local test spawn successes and failures to BepInEx.
+
+
 ## 0.8.0
 - Add target-player spawning using the redeeming broadcaster's Photon player identity while retaining host-authoritative execution.
 - Add weighted random selection across eligible monsters, valuables and approved utility items.
