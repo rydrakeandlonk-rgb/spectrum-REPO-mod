@@ -227,7 +227,16 @@ internal sealed class RepoRuntimePolicy
             name.IndexOf("weapon", StringComparison.OrdinalIgnoreCase) >= 0 ||
             name.IndexOf("rocket", StringComparison.OrdinalIgnoreCase) >= 0 ||
             name.IndexOf("explosive", StringComparison.OrdinalIgnoreCase) >= 0 ||
-            name.IndexOf("projectile", StringComparison.OrdinalIgnoreCase) >= 0;
+            name.IndexOf("projectile", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("sword", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("knife", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("blade", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("melee", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("launcher", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("turret", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("bullet", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("ammo", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("firearm", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }
 
