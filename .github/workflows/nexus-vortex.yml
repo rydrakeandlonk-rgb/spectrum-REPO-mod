@@ -63,9 +63,9 @@ jobs:
           grep -q '<Compile Include="Runtime/RepoGatewayClient.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoCatalogBuilder.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoSpawnExecutor.cs"' src/SpectrumRepoMod.csproj
-          grep -q 'PluginVersion = "0.5.0"' src/Plugin.cs
+          grep -q 'PluginVersion = "0.6.0"' src/Plugin.cs
           if grep -q '<Compile Include="Rewards/' src/SpectrumRepoMod.csproj; then
-            echo "::error::The first test build must compile only the dedicated valuable-only runtime path."
+            echo "::error::Unexpected reward runtime source was added to the R.E.P.O. test build."
             exit 1
           fi
 
