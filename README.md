@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.6.0 adds a dedicated Tools pool for approved shop upgrades, drones and C.A.R.T.s.** The F8 panel supports Twitch pairing, the Spectrum Game Mods gateway, run/lobby/host reporting, local test spawns, and live catalogue publication.
+**Version 0.6.1 adds diagnostics for the approved non-combat shop item test pool.** The F8 panel supports Twitch pairing, the Spectrum Game Mods gateway, run/lobby/host reporting, local test spawns, and live catalogue publication.
 
 ## Requirements
 
@@ -32,17 +32,17 @@ The host credential is private. Do not post or share the contents of the mod con
 
 - Valuables are discovered from all currently loaded vanilla valuable presets and the active level.
 - Monsters are discovered from loaded vanilla EnemySetup assets and the active difficulty registries.
-- Tools are discovered only from the exact vanilla prefab names for the 12 listed upgrades, 5 listed drones and 2 C.A.R.T.s.
+- Shop items remain limited to the approved non-combat upgrade, drone and C.A.R.T. entries; this build logs matched and excluded catalogue entries to diagnose missing candidates.
 - Upgrade, drone and cart entries are checked against their expected vanilla item components before being marked eligible.
 - Tools use the existing Control Center **Shop utility items** category toggle.
 - Only the current R.E.P.O. host executes shared spawns.
 - Requests are deduplicated locally before execution.
-- The F8 panel provides local test buttons for Valuables, Monsters and Tools.
+- The F8 panel provides local test buttons for Valuables, Monsters and Shop Items.
 - Twitch reward delivery is not enabled in this test build.
 
 ## Validation required
 
-- Confirm all 19 Tools entries appear in Control Center.
+- Confirm the approved Shop Items entries appear in Control Center and review the BepInEx log for matched/eligible counts.
 - Test at least one upgrade, drone and each C.A.R.T. type in single-player.
 - Test Tools in a private multiplayer lobby and confirm every member sees one spawn.
 - Verify the Shop utility items toggle blocks Tools requests when disabled.
