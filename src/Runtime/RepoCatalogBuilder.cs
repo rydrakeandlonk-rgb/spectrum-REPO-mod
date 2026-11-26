@@ -61,8 +61,8 @@ internal static class RepoCatalogBuilder
         new("Phase Bridge R.E.P.O.", "Phase Bridge", "drone"),
         new("Semibot walkiee", "Semibot Walkies", "drone"),
         new("Defibro transparent", "Defibro", "drone"),
-        new("TrackerValuable", "Valuable Tracker", "trackervaluable"),
-        new("TrackerExtraction", "Extraction Tracker", "trackerextraction"),
+        new("TrackerValuable", "Valuable Tracker", "tracker"),
+        new("TrackerExtraction", "Extraction Tracker", "tracker"),
 
         new("CartSmall", "Pocket C.A.R.T.", "cart"),
         new("CartBig", "C.A.R.T.", "cart"),
@@ -81,6 +81,7 @@ internal static class RepoCatalogBuilder
         AddValuables(rows, policy);
         AddMonsters(rows, policy);
         AddUtilityItems(rows, policy);
+        RepoSpawnRegistry.AppendRows(rows, policy);
         return new RepoCatalogSnapshot(rows);
     }
 
@@ -201,6 +202,7 @@ internal static class RepoCatalogBuilder
         var upgradeMatches = 0;
         var droneMatches = 0;
         var cartMatches = 0;
+        var trackerMatches = 0;
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var item in loadedItems)
@@ -225,10 +227,15 @@ internal static class RepoCatalogBuilder
 
             // Keep drones on the existing approved list; identify them by any
             // of the item's exposed safe identifiers rather than PrefabName alone.
-            var isApprovedDrone = UtilityItemDefinitions.Any(definition =>
-                definition.Kind == "drone" &&
-                IdentityMatches(identity, NormalizeIdentity(definition.PrefabName),
-                    NormalizeIdentity(definition.DisplayName)));
+            var isApprovedDrone = prefab.GetComponentInChildren<ItemDrone>(true) != null ||
+                UtilityItemDefinitions.Any(definition =>
+                    definition.Kind == "drone" &&
+                    IdentityMatches(identity, NormalizeIdentity(definition.PrefabName),
+                        NormalizeIdentity(definition.DisplayName)));
+
+            // Trackers are safe utility tools and are discovered by behaviour,
+            // not by their particular vanilla asset names.
+            var isTracker = prefab.GetComponentInChildren<ItemTracker>(true) != null;
 
             // C.A.R.T.s must be physical items and explicitly identify as a cart.
             var isCart = item.physicalItem &&
@@ -238,11 +245,11 @@ internal static class RepoCatalogBuilder
             // components. Names alone never make an otherwise unknown item safe.
             var toolKind = GetApprovedToolKind(prefab);
 
-            if (!isUpgrade && !isApprovedDrone && !isCart && string.IsNullOrEmpty(toolKind))
+            if (!isUpgrade && !isApprovedDrone && !isCart && !isTracker && string.IsNullOrEmpty(toolKind))
                 continue;
 
             var kind = isUpgrade ? "upgrade" : isApprovedDrone ? "drone" :
-                isCart ? "cart" : toolKind;
+                isCart ? "cart" : isTracker ? "tracker" : toolKind;
             var definition = UtilityItemDefinitions.FirstOrDefault(candidate =>
                 candidate.Kind == kind &&
                 IdentityMatches(identity, NormalizeIdentity(candidate.PrefabName),
@@ -262,12 +269,14 @@ internal static class RepoCatalogBuilder
                 displayName = kind == "upgrade" ? "Shop upgrade" :
                     kind == "drone" ? "Approved drone" :
                     kind == "cart" ? "C.A.R.T." :
+                    kind == "tracker" ? "Tracker" :
                     kind == "walkie_box" ? "Walkie Talkie Box" :
                     kind == "walkie_talkie" ? "Walkie Talkie" : "Leaf Blower";
 
             if (kind == "upgrade") upgradeMatches++;
             else if (kind == "drone") droneMatches++;
             else if (kind == "cart") cartMatches++;
+            else if (kind == "tracker") trackerMatches++;
 
             var id = "utility_item:" + path;
             var target = RepoSpawnTarget.ForUtilityItem(item, kind);
@@ -280,11 +289,12 @@ internal static class RepoCatalogBuilder
             rows.Add(new RepoCatalogRow("utility_item", id, displayName, target, allowed, reason));
         }
 
-        var toolMatches = matched - upgradeMatches - droneMatches - cartMatches;
+        var toolMatches = matched - upgradeMatches - droneMatches - cartMatches - trackerMatches;
         Plugin.Log.LogInfo("Shop item catalogue diagnostic: loaded Item assets=" + loadedItems.Length +
             ", matched approved non-combat entries=" + matched +
-            " (upgrades=" + upgradeMatches + ", approved drones=" + droneMatches +
-            ", carts=" + cartMatches + ", utility tools=" + toolMatches + "), eligible=" + eligible +
+            " (upgrades=" + upgradeMatches + ", drones=" + droneMatches +
+            ", carts=" + cartMatches + ", trackers=" + trackerMatches +
+            ", utility tools=" + toolMatches + "), eligible=" + eligible +
             ", approved definitions=" + UtilityItemDefinitions.Length + ".");
 
         static string NormalizeIdentity(string value)
