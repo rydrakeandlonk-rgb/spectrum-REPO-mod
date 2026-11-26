@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using SpectrumRepoMod.API;
 
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Builds the valuable and monster catalogues, plus an explicit allowlist of
-/// verified vanilla upgrades, drones, C.A.R.T.s and utility tools from loaded Item assets.
+/// Builds the three stable Control Center catalogues from game-discovered and
+/// explicitly registered content. Category validation remains centralized.
 /// </summary>
 internal static class RepoCatalogBuilder
 {
