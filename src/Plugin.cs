@@ -232,7 +232,8 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (!string.Equals(category, "valuable", StringComparison.Ordinal) &&
             !string.Equals(category, "monster", StringComparison.Ordinal) &&
-            !string.Equals(category, "utility_item", StringComparison.Ordinal))
+            !string.Equals(category, "utility_item", StringComparison.Ordinal) &&
+            !string.Equals(category, "random", StringComparison.Ordinal))
         {
             _gateway.CompleteSpawn(requestId, category, false, "",
                 "This build supports valuables, monsters and approved shop items only.");
@@ -306,8 +307,8 @@ public sealed class Plugin : BaseUnityPlugin
             {
                 if (selectedCategory == "utility_item")
                 {
-                    var matched = Catalog.Rows.Count(row => row.Category == category);
-                    var excluded = Catalog.Rows.FirstOrDefault(row => row.Category == category && !row.Allowed);
+                    var matched = Catalog.Rows.Count(row => row.Category == selectedCategory);
+                    var excluded = Catalog.Rows.FirstOrDefault(row => row.Category == selectedCategory && !row.Allowed);
                     detail = matched == 0
                         ? "No approved non-combat shop entries matched the loaded game assets. Check the BepInEx log for the catalogue diagnostic."
                         : matched + " approved shop entries matched, but none passed validation. First exclusion: " +
@@ -343,7 +344,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
         catch (Exception error)
         {
-            detail = "The game rejected the " + category + " spawn: " + error.Message;
+            detail = "The game rejected the " + selectedCategory + " spawn: " + error.Message;
             Log.LogError("R.E.P.O. " + selectedCategory + " spawn failed: " + error);
             return false;
         }
