@@ -69,4 +69,4 @@ Unknown shop item types are deliberately not auto-approved. Mod authors can expl
 - Verify late-loaded assets appear after the catalogue refresh.
 - Verify reconnect and host-migration behaviour.
 
-This is a hidden testing release. A successful source commit or CI build does not by itself confirm an in-game compatibility test.
+This is a hidden testing release. Ordinary main-branch pushes build an installable artifact but do not publish to Nexus. Nexus publishing requires a published GitHub release or an explicit manual workflow opt-in. A successful source commit or CI build does not by itself confirm an in-game compatibility test.
