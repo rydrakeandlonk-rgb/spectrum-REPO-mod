@@ -14,11 +14,13 @@ using var assembly = AssemblyDefinition.ReadAssembly(Path.GetFullPath(args[0]), 
 });
 
 // Strictly scoped to the three requested non-weapon shop groups.
-// No general item registry, shop inventory, weapon, or unrelated type scan.
+// Item is included only as the shared base component needed to validate
+// the exact approved prefab names at runtime. No inventory registry is read.
 var allowedNames = new[] { "Upgrade", "Drone", "CartSmall", "CartBig" };
 var types = assembly.MainModule.Types
     .SelectMany(Flatten)
-    .Where(t => allowedNames.Any(name => t.Name.Contains(name, StringComparison.OrdinalIgnoreCase)))
+    .Where(t => t.Name == "Item" ||
+        allowedNames.Any(name => t.Name.Contains(name, StringComparison.OrdinalIgnoreCase)))
     .OrderBy(t => t.FullName, StringComparer.Ordinal)
     .Select(t => new
     {
