@@ -48,8 +48,6 @@ internal sealed class RepoGatewayClient
         _hostToken.Value = hostToken;
         _config.Save();
 
-        // If this instance was already connected under another broadcaster,
-        // force the receive loop to reconnect using the newly saved identity.
         if (_connectionStarted)
         {
             try { _socket?.Abort(); } catch { }
@@ -242,13 +240,14 @@ internal sealed class RepoGatewayClient
         {
             Plugin.SpawnPolicy = new RepoRuntimePolicy(
                 config.categories.valuable?.enabled ?? true,
-                config.categories.monster?.enabled ?? true);
+                config.categories.monster?.enabled ?? true,
+                config.categories.utility_item?.enabled ?? true);
             Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
         }
         catch (Exception error)
         {
             Plugin.Log.LogError("Could not apply the Control Center spawn policy: " + error.Message);
-            Plugin.SpawnPolicy = new RepoRuntimePolicy(false, false);
+            Plugin.SpawnPolicy = new RepoRuntimePolicy(false, false, false);
             Plugin.Catalog = RepoCatalogSnapshot.Empty;
         }
     }

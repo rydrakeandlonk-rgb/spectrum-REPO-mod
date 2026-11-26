@@ -16,11 +16,11 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.5.0";
+    public const string PluginVersion = "0.6.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
-    internal static RepoRuntimePolicy SpawnPolicy { get; set; } = new(true);
+    internal static RepoRuntimePolicy SpawnPolicy { get; set; } = new(true, true, true);
     internal static RepoCatalogSnapshot Catalog { get; set; } = RepoCatalogSnapshot.Empty;
 
     private readonly RepoSpawnExecutor _spawnExecutor = new();
@@ -44,7 +44,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Instance = this;
         Log = Logger;
-        SpawnPolicy = new RepoRuntimePolicy(true);
+        SpawnPolicy = new RepoRuntimePolicy(true, true, true);
         Catalog = RepoCatalogSnapshot.Empty;
 
         _pairingClient = new RepoPairingClient();
@@ -53,7 +53,7 @@ public sealed class Plugin : BaseUnityPlugin
         _gateway.Start();
 
         _showPanel = !_gateway.IsConfigured;
-        Log.LogInfo("Spectrum R.E.P.O. Mod 0.5.0 initialised. Press F8 to open its panel.");
+        Log.LogInfo("Spectrum R.E.P.O. Mod 0.6.0 initialised. Press F8 to open its panel.");
     }
 
     private void Start()
@@ -88,7 +88,9 @@ public sealed class Plugin : BaseUnityPlugin
         var room = PhotonNetwork.CurrentRoom;
         GUILayout.Label("Game: " + (inRun ? "Run active" : "Waiting for an active run"));
         GUILayout.Label("Lobby: " + (room == null ? "Single-player / not in a lobby" : room.Name));
-        GUILayout.Label("Valuables: " + Catalog.AllowedCandidates.Count(row => row.Category == "valuable") + " | Monsters: " + Catalog.AllowedCandidates.Count(row => row.Category == "monster"));
+        GUILayout.Label("Valuables: " + Catalog.AllowedCandidates.Count(row => row.Category == "valuable") +
+            " | Monsters: " + Catalog.AllowedCandidates.Count(row => row.Category == "monster") +
+            " | Tools: " + Catalog.AllowedCandidates.Count(row => row.Category == "utility_item"));
 
         if (!string.IsNullOrWhiteSpace(_pairingStatus))
             GUILayout.Label("Twitch: " + _pairingStatus);
@@ -108,6 +110,8 @@ public sealed class Plugin : BaseUnityPlugin
                 SpawnLocalTest("valuable");
             if (GUILayout.Button("Test spawn one monster beside me"))
                 SpawnLocalTest("monster");
+            if (GUILayout.Button("Test spawn one shop item beside me"))
+                SpawnLocalTest("utility_item");
         }
 
         GUILayout.Space(4f);
@@ -188,7 +192,7 @@ public sealed class Plugin : BaseUnityPlugin
             catch (Exception error)
             {
                 Catalog = RepoCatalogSnapshot.Empty;
-                Log.LogError("Could not rebuild the current-level valuable catalogue: " + error.Message);
+                Log.LogError("Could not rebuild the current R.E.P.O. spawn catalogue: " + error.Message);
             }
         }
 
@@ -219,9 +223,11 @@ public sealed class Plugin : BaseUnityPlugin
         RememberRequest(requestId);
 
         if (!string.Equals(category, "valuable", StringComparison.Ordinal) &&
-            !string.Equals(category, "monster", StringComparison.Ordinal))
+            !string.Equals(category, "monster", StringComparison.Ordinal) &&
+            !string.Equals(category, "utility_item", StringComparison.Ordinal))
         {
-            _gateway.CompleteSpawn(requestId, category, false, "", "This build supports valuables and monsters only.");
+            _gateway.CompleteSpawn(requestId, category, false, "",
+                "This build supports valuables, monsters and approved shop items only.");
             return;
         }
 
@@ -272,7 +278,6 @@ public sealed class Plugin : BaseUnityPlugin
                 forward = Vector3.forward;
             forward.Normalize();
 
-            // Spawn just ahead of the local player, slightly below waist height.
             var position = player.transform.position + forward * 1.35f + Vector3.up * 0.7f;
             var rotation = Quaternion.LookRotation(forward, Vector3.up);
             var success = _spawnExecutor.TrySpawn(candidate, SpawnPolicy, position, rotation, out detail);

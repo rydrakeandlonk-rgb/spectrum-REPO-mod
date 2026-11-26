@@ -40,7 +40,10 @@ internal sealed class RepoSpawnExecutor
         if (string.Equals(candidate.Category, "monster", StringComparison.Ordinal))
             return TrySpawnMonster(candidate, position, out result);
 
-        result = "This build supports valuables and monsters only.";
+        if (string.Equals(candidate.Category, "utility_item", StringComparison.Ordinal))
+            return TrySpawnUtilityItem(candidate, position, rotation, out result);
+
+        result = "This build supports valuables, monsters and approved shop items only.";
         return false;
     }
 
@@ -126,6 +129,63 @@ internal sealed class RepoSpawnExecutor
         }
 
         result = "Monster spawn completed.";
+        return true;
+    }
+
+    private static bool TrySpawnUtilityItem(RepoCatalogRow candidate, Vector3 position,
+        Quaternion rotation, out string result)
+    {
+        var item = candidate.Target.UtilityItem;
+        if (item == null || item.prefab == null || !item.prefab.IsValid())
+        {
+            result = "The selected shop item is no longer available.";
+            return false;
+        }
+
+        var prefabRef = item.prefab;
+        var loadedPrefab = prefabRef.Prefab;
+        if (loadedPrefab == null)
+        {
+            result = "The selected shop item prefab could not be loaded.";
+            return false;
+        }
+
+        var expectedAttributes = loadedPrefab.GetComponent<ItemAttributes>() ??
+            loadedPrefab.GetComponentInChildren<ItemAttributes>(true);
+        if (expectedAttributes == null || expectedAttributes.item != item)
+        {
+            result = "The selected prefab is not linked to its vanilla item data.";
+            return false;
+        }
+
+        var spawnRotation = rotation * item.spawnRotationOffset;
+        GameObject spawned;
+        if (PhotonNetwork.CurrentRoom != null)
+            spawned = PhotonNetwork.InstantiateRoomObject(prefabRef.ResourcePath,
+                position, spawnRotation, 0, null);
+        else
+            spawned = UnityEngine.Object.Instantiate(loadedPrefab, position, spawnRotation);
+
+        if (spawned == null)
+        {
+            result = "The game did not confirm a successful shop item spawn.";
+            return false;
+        }
+
+        var spawnedAttributes = spawned.GetComponent<ItemAttributes>() ??
+            spawned.GetComponentInChildren<ItemAttributes>(true);
+        if (spawnedAttributes == null || spawnedAttributes.item != item)
+        {
+            if (PhotonNetwork.CurrentRoom != null)
+                PhotonNetwork.Destroy(spawned);
+            else
+                UnityEngine.Object.Destroy(spawned);
+
+            result = "The spawned object did not initialize as the selected vanilla shop item.";
+            return false;
+        }
+
+        result = "Shop item spawn completed.";
         return true;
     }
 }
