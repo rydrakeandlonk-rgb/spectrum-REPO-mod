@@ -18,6 +18,9 @@
     <Compile Include="Runtime/RepoGatewayClient.cs" />
     <Compile Include="Runtime/RepoRuntimeModels.cs" />
     <Compile Include="Runtime/RepoCatalogBuilder.cs" />
+    <Compile Include="Runtime/RepoValuableCatalogue.cs" />
+    <Compile Include="Runtime/RepoMonsterCatalogue.cs" />
+    <Compile Include="Runtime/RepoUtilityItemCatalogue.cs" />
     <Compile Include="Runtime/RepoSpawnExecutor.cs" />
     <Compile Include="Runtime/RepoSpawnTarget.cs" />
     <Compile Include="Runtime/RepoSpawnRegistry.cs" />
