@@ -49,27 +49,28 @@ internal static class RepoCatalogBuilder
         new("DroneFeather", "Feather Drone", "drone"),
         new("DroneZeroGravity", "Zero Gravity Drone", "drone"),
 
-        new("HealthSmall", "Small Health Pack", "healthsmall"),
-        new("HealthMedium", "Medium Health Pack", "healthmedium"),
-        new("HealthLarge", "Large Health Pack", "healthlarge"),
+        new("HealthSmall", "Small Health Pack", "upgrade"),
+        new("HealthMedium", "Medium Health Pack", "upgrade"),
+        new("HealthLarge", "Large Health Pack", "upgrade"),
 
-        new("Scout", "Scout", "scout"),
-        new("Hauler", "Hauler", "hauler"),
+        
 
-        new("EnergyCrystal", "Energy Crystal", "energycrystal"),
-        new("ZeroGravityOrb", "Zero Gravity Orb", "zerogravityorb"),
-        new("Chargingorb", "Charging Orb", "chargingorb"),
-        new("Duck Bucket", "Duck Bucket", "duckbucket"),
-        new("Phase Bridge R.E.P.O.", "Phase Bridge", "phasebridgerepo"),
-        new("Semibot walkiee", "Semibot Walkies", "semibotwalkiee"),
-        new("Defibro transparent", "Defibro", "defibrotransparent"),
-        new("LeafBlower", "Leaf Blower", "leafblower"),
+        new("EnergyCrystal", "Energy Crystal", "drone"),
+        new("ZeroGravityOrb", "Zero Gravity Orb", "drone"),
+        new("Chargingorb", "Charging Orb", "drone"),
+        new("Duck Bucket", "Duck Bucket", "drone"),
+        new("Phase Bridge R.E.P.O.", "Phase Bridge", "drone"),
+        new("Semibot walkiee", "Semibot Walkies", "drone"),
+        new("Defibro transparent", "Defibro", "drone"),
+        new("LeafBlower", "Leaf Blower", "drone"),
 
         new("TrackerValuable", "Valuable Tracker", "trackervaluable"),
         new("TrackerExtraction", "Extraction Tracker", "trackerextraction"),
 
         new("CartSmall", "Pocket C.A.R.T.", "cart"),
         new("CartBig", "C.A.R.T.", "cart")
+        new("Scout", "Scout", "cart"),
+        new("Hauler", "Hauler", "cart"),
     };
 
     private static readonly Dictionary<string, UtilityItemDefinition> UtilityItemsByPrefab =
