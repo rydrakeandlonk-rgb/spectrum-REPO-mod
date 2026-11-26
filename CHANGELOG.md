@@ -2,12 +2,13 @@
 
 ## 0.7.0
 - Add a public registration API for modded valuables, enemy setups and non-combat utility items that are not exposed through the game's normal discovery registries.
-- Discover modded drones and trackers by their runtime behaviour components rather than requiring vanilla asset names.
+- Discover modded drones, health packs and trackers by their runtime behaviour components rather than requiring vanilla asset names.
 - Correct tracker classification so both valuable and extraction trackers can pass the utility catalogue validator.
 - Add a conservative validation profile for explicitly registered non-combat physical items; reject known combat component families.
 - Refresh the catalogue every 30 seconds to pick up assets and registrations loaded after the initial scan.
 - Preserve the existing Control Center category IDs, host-only execution, prefab-reference network spawning and shared spawn executor.
 - Document mod author registration and compatibility limits.
+- Keep ordinary main-branch pushes build-only; Nexus publishing now requires a published release or explicit manual opt-in.
 
 ## 0.6.0
 - Add a separate Tools catalogue for the 12 listed upgrades, 5 listed drones and 2 C.A.R.T.s.
