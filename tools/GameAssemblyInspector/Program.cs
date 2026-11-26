@@ -16,10 +16,14 @@ using var assembly = AssemblyDefinition.ReadAssembly(Path.GetFullPath(args[0]), 
 // Strictly scoped to the three requested non-weapon shop groups.
 // Item is included only as the shared base component needed to validate
 // the exact approved prefab names at runtime. No inventory registry is read.
-var allowedNames = new[] { "Upgrade", "Drone", "CartSmall", "CartBig" };
+var allowedNames = new[] { "Upgrade", "Drone" };
+var exactSharedTypes = new HashSet<string>(StringComparer.Ordinal)
+{
+    "Item", "ItemAttributes", "Cart", "ItemCart"
+};
 var types = assembly.MainModule.Types
     .SelectMany(Flatten)
-    .Where(t => t.Name == "Item" ||
+    .Where(t => exactSharedTypes.Contains(t.Name) ||
         allowedNames.Any(name => t.Name.Contains(name, StringComparison.OrdinalIgnoreCase)))
     .OrderBy(t => t.FullName, StringComparer.Ordinal)
     .Select(t => new
