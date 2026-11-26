@@ -69,6 +69,17 @@ namespace SpectrumRepoMod.API
 
             foreach (var registered in snapshot)
             {
+                if (rows.Exists(row => row.Category == registered.Category && row.Id == registered.Id))
+                    continue;
+
+                if (registered.Category == "utility_item" && RunManager.instance == null)
+                {
+                    rows.Add(new RepoCatalogRow(registered.Category, registered.Id,
+                        registered.DisplayName, registered.Target, false,
+                        "Waiting for an active R.E.P.O. run before validating the item prefab."));
+                    continue;
+                }
+
                 var allowed = policy.TryValidate(registered, out var reason);
                 rows.Add(new RepoCatalogRow(registered.Category, registered.Id,
                     registered.DisplayName, registered.Target, allowed, reason));
