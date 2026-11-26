@@ -89,29 +89,82 @@ internal sealed class RepoRuntimePolicy
                 return false;
             }
 
-            if (candidate.Target.UtilityItemKind == "upgrade" &&
-                prefab.GetComponentInChildren<ItemUpgrade>(true) == null)
+            var kind = candidate.Target.UtilityItemKind;
+            if (!item.physicalItem && kind != "upgrade")
             {
-                reason = "The upgrade prefab is missing its vanilla upgrade component.";
+                reason = "The utility item is not marked as a physical item by the game.";
                 return false;
             }
 
-            if (candidate.Target.UtilityItemKind == "drone" &&
-                prefab.GetComponentInChildren<ItemDrone>(true) == null)
+            if (kind == "upgrade")
             {
-                reason = "The drone prefab is missing its vanilla drone component.";
-                return false;
+                if (prefab.GetComponentInChildren<ItemUpgrade>(true) == null)
+                {
+                    reason = "The upgrade prefab is missing its vanilla upgrade component.";
+                    return false;
+                }
             }
-
-            if (candidate.Target.UtilityItemKind == "cart" && !item.physicalItem)
+            else if (kind == "drone")
             {
-                reason = "The cart item is not marked as a physical item by the game.";
-                return false;
+                if (prefab.GetComponentInChildren<ItemDrone>(true) == null)
+                {
+                    reason = "The drone prefab is missing its vanilla drone component.";
+                    return false;
+                }
             }
+            else if (kind == "cart")
+            {
+                // Physical-item status was checked above. Cart discovery also
+                // requires an explicit cart identity in the catalogue builder.
+            }
+            else if (kind == "walkie_box")
+            {
+                var box = prefab.GetComponentInChildren<ItemWalkieBox>(true);
+                if (box == null || box.walkieBoxItem != item)
+                {
+                    reason = "The walkie box is missing its vanilla box behaviour or item reference.";
+                    return false;
+                }
 
-            if (candidate.Target.UtilityItemKind != "upgrade" &&
-                candidate.Target.UtilityItemKind != "drone" &&
-                candidate.Target.UtilityItemKind != "cart")
+                var talkieItem = box.walkieTalkieItem;
+                if (talkieItem == null || talkieItem.disabled ||
+                    talkieItem.prefab == null || !talkieItem.prefab.IsValid())
+                {
+                    reason = "The walkie box does not reference a valid vanilla walkie-talkie item.";
+                    return false;
+                }
+
+                var talkiePrefab = talkieItem.prefab.Prefab;
+                var talkieAttributes = talkiePrefab == null ? null :
+                    (talkiePrefab.GetComponent<ItemAttributes>() ??
+                     talkiePrefab.GetComponentInChildren<ItemAttributes>(true));
+                if (talkiePrefab == null ||
+                    talkiePrefab.GetComponentInChildren<ItemWalkieTalkie>(true) == null ||
+                    talkieAttributes == null || talkieAttributes.item != talkieItem)
+                {
+                    reason = "The walkie box's referenced walkie-talkie prefab is not correctly linked.";
+                    return false;
+                }
+            }
+            else if (kind == "walkie_talkie")
+            {
+                if (prefab.GetComponentInChildren<ItemWalkieTalkie>(true) == null)
+                {
+                    reason = "The walkie-talkie prefab is missing its vanilla behaviour component.";
+                    return false;
+                }
+            }
+            else if (kind == "leaf_blower")
+            {
+                if (prefab.GetComponentInChildren<ItemLeafBlower>(true) == null ||
+                    prefab.GetComponentInChildren<ItemBattery>(true) == null ||
+                    prefab.GetComponentInChildren<ItemToggle>(true) == null)
+                {
+                    reason = "The leaf blower is missing one or more required vanilla behaviour components.";
+                    return false;
+                }
+            }
+            else
             {
                 reason = "The shop item is outside the approved Tools catalogue.";
                 return false;
