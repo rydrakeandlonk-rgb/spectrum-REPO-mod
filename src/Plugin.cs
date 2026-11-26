@@ -16,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.6.2";
+    public const string PluginVersion = "0.7.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -38,6 +38,7 @@ public sealed class Plugin : BaseUnityPlugin
     private bool _lastIsMaster;
     private int _lastLevelInstanceId = -1;
     private float _nextStateReportAt;
+    private float _nextCatalogueRefreshAt;
     private Rect _windowRect = new(24f, 24f, 430f, 310f);
 
     private void Awake()
@@ -179,11 +180,15 @@ public sealed class Plugin : BaseUnityPlugin
             isMaster != _lastIsMaster;
         var levelChanged = levelId != _lastLevelInstanceId;
         var reportDue = Time.unscaledTime >= _nextStateReportAt;
+        var catalogueRefreshDue = Time.unscaledTime >= _nextCatalogueRefreshAt;
 
-        if (!force && !stateChanged && !levelChanged && !reportDue)
+        if (!force && !stateChanged && !levelChanged && !reportDue && !catalogueRefreshDue)
             return;
 
-        if (force || levelChanged)
+        // Mod loaders may register bundles and assets after our first level scan.
+        // Re-scan at a bounded interval rather than performing expensive Unity
+        // resource discovery every frame.
+        if (force || levelChanged || catalogueRefreshDue)
         {
             try
             {
@@ -197,7 +202,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         _gateway.SendSessionState(runActive, lobbyId, isMaster);
-        if (force || stateChanged || levelChanged)
+        if (force || stateChanged || levelChanged || catalogueRefreshDue)
             _gateway.PublishCatalogue(runActive, lobbyId, isMaster);
 
         _lastRunActive = runActive;
@@ -205,6 +210,8 @@ public sealed class Plugin : BaseUnityPlugin
         _lastIsMaster = isMaster;
         _lastLevelInstanceId = levelId;
         _nextStateReportAt = Time.unscaledTime + 10f;
+        if (force || levelChanged || catalogueRefreshDue)
+            _nextCatalogueRefreshAt = Time.unscaledTime + 30f;
     }
 
     private void RefreshRuntimeState(bool force) => PublishCurrentState(force);
