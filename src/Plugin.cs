@@ -299,16 +299,17 @@ public sealed class Plugin : BaseUnityPlugin
                 selectedCategory = chosen.Category;
             }
 
-            if (!Catalog.AllowedCandidates.Any(row => row.Category == selectedCategory))
+            var targetCategory = selectedCategory;
+            if (!Catalog.AllowedCandidates.Any(row => row.Category == targetCategory))
                 Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
 
-            var candidates = Catalog.AllowedCandidates.Where(row => row.Category == selectedCategory).ToArray();
+            var candidates = Catalog.AllowedCandidates.Where(row => row.Category == targetCategory).ToArray();
             if (candidates.Length == 0)
             {
                 if (selectedCategory == "utility_item")
                 {
-                    var matched = Catalog.Rows.Count(row => row.Category == selectedCategory);
-                    var excluded = Catalog.Rows.FirstOrDefault(row => row.Category == selectedCategory && !row.Allowed);
+                    var matched = Catalog.Rows.Count(row => row.Category == targetCategory);
+                    var excluded = Catalog.Rows.FirstOrDefault(row => row.Category == targetCategory && !row.Allowed);
                     detail = matched == 0
                         ? "No approved non-combat shop entries matched the loaded game assets. Check the BepInEx log for the catalogue diagnostic."
                         : matched + " approved shop entries matched, but none passed validation. First exclusion: " +
