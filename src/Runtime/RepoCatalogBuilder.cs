@@ -25,9 +25,8 @@ internal static class RepoCatalogBuilder
         }
     }
 
-    // Names are taken from the Purchased Items page's Appearance column.
-    // This intentionally excludes all other shop categories and the unobtainable
-    // "Throw" upgrade.
+    // Known shop aliases are used for stable display names. Tool entries are
+    // additionally gated by exact vanilla behaviour components below.
     private static readonly UtilityItemDefinition[] UtilityItemDefinitions =
     {
         new("Strength Upgrade", "Strength Upgrade", "upgrade"),
@@ -251,7 +250,8 @@ internal static class RepoCatalogBuilder
 
             var displayName = definition?.DisplayName;
             if (string.IsNullOrWhiteSpace(displayName))
-                displayName = string.IsNullOrWhiteSpace(itemName) ? prefabName : itemName;
+                displayName = !string.IsNullOrWhiteSpace(itemDisplayName) ? itemDisplayName :
+                    !string.IsNullOrWhiteSpace(itemName) ? itemName : prefabName;
             if (string.IsNullOrWhiteSpace(displayName))
                 displayName = kind == "upgrade" ? "Shop upgrade" :
                     kind == "drone" ? "Approved drone" :
@@ -261,7 +261,7 @@ internal static class RepoCatalogBuilder
 
             if (kind == "upgrade") upgradeMatches++;
             else if (kind == "drone") droneMatches++;
-            else cartMatches++;
+            else if (kind == "cart") cartMatches++;
 
             var id = "utility_item:" + path;
             var target = RepoSpawnTarget.ForUtilityItem(item, kind);
@@ -274,10 +274,11 @@ internal static class RepoCatalogBuilder
             rows.Add(new RepoCatalogRow("utility_item", id, displayName, target, allowed, reason));
         }
 
+        var toolMatches = matched - upgradeMatches - droneMatches - cartMatches;
         Plugin.Log.LogInfo("Shop item catalogue diagnostic: loaded Item assets=" + loadedItems.Length +
             ", matched approved non-combat entries=" + matched +
             " (upgrades=" + upgradeMatches + ", approved drones=" + droneMatches +
-            ", carts=" + cartMatches + "), eligible=" + eligible +
+            ", carts=" + cartMatches + ", utility tools=" + toolMatches + "), eligible=" + eligible +
             ", approved definitions=" + UtilityItemDefinitions.Length + ".");
 
         static string NormalizeIdentity(string value)
