@@ -53,14 +53,6 @@ internal static class RepoCatalogBuilder
         new("HealthMedium", "Medium Health Pack", "healthmedium"),
         new("HealthLarge", "Large Health Pack", "healthlarge"),
 
-        new("Gun","gun","weapon"),
-        new("Human Gun", "human gun","Weapon"),
-        new("Shotgun","shotgun","weapon"),
-        new("Tranq Gun","tranq gun","weapon"),
-        new("Pulse Pistol","pulse pistol","Weapon"),
-        new("Photon Blaster","photon blaster","weapon"),
-        new("Boltzap","boltzap","weapon"),
-
         new("Scout", "Scout", "scout"),
         new("Hauler", "Hauler", "hauler"),
 
