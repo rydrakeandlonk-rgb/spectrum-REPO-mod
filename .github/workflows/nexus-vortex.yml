@@ -109,7 +109,8 @@ jobs:
 
   publish:
     name: Publish verified build to Nexus Mods
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
+    # Ordinary pushes build artifacts only. Nexus publishing requires an explicit release or manual opt-in.
+    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_nexus) }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:
