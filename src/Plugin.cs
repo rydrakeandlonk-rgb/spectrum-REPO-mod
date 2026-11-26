@@ -17,7 +17,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.8.0";
+    public const string PluginVersion = "0.8.1";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -246,12 +246,24 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void SpawnLocalTest(string category)
     {
+        var localPlayer = PlayerAvatar.instance;
+        if (localPlayer == null)
+        {
+            _pairingStatus = "Local test failed: your player avatar is not available yet.";
+            Log.LogWarning("R.E.P.O. local spawn test skipped because PlayerAvatar.instance is null.");
+            return;
+        }
+
         var localPhotonId = PhotonNetwork.LocalPlayer?.ActorNumber ?? -1;
-        var success = SpawnRandomCandidate(category, localPhotonId, out _, out var itemName, out var detail);
+        var success = SpawnRandomCandidate(category, localPhotonId, out _, out var itemName, out var detail, localPlayer);
         _pairingStatus = success ? "Local test spawned: " + itemName : "Local test failed: " + detail;
+        if (success)
+            Log.LogInfo("R.E.P.O. local " + category + " test spawn succeeded: " + itemName + ".");
+        else
+            Log.LogError("R.E.P.O. local " + category + " test spawn failed: " + detail);
     }
 
-    private bool SpawnRandomCandidate(string requestedCategory, int targetPhotonId, out string selectedCategory, out string itemName, out string detail)
+    private bool SpawnRandomCandidate(string requestedCategory, int targetPhotonId, out string selectedCategory, out string itemName, out string detail, PlayerAvatar? targetOverride = null)
     {
         selectedCategory = requestedCategory;
         itemName = "";
@@ -322,7 +334,7 @@ public sealed class Plugin : BaseUnityPlugin
                 return false;
             }
 
-            var player = ResolveTargetPlayer(targetPhotonId);
+            var player = targetOverride ?? ResolveTargetPlayer(targetPhotonId);
             if (player == null)
             {
                 detail = "The redemption target is no longer present in this lobby.";
