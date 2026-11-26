@@ -44,9 +44,9 @@ internal static class RepoUtilityItemCatalogue
         new("DroneFeather", "Feather Drone", "drone"),
         new("DroneZeroGravity", "Zero Gravity Drone", "drone"),
 
-        new("HealthSmall", "Small Health Pack", "upgrade"),
-        new("HealthMedium", "Medium Health Pack", "upgrade"),
-        new("HealthLarge", "Large Health Pack", "upgrade"),
+        new("HealthSmall", "Small Health Pack", "health_pack"),
+        new("HealthMedium", "Medium Health Pack", "health_pack"),
+        new("HealthLarge", "Large Health Pack", "health_pack"),
 
         
 
@@ -109,6 +109,7 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
             // Upgrades are identified by their dedicated game component. This
             // avoids relying on prefab display names, which vary between builds.
             var isUpgrade = prefab.GetComponentInChildren<ItemUpgrade>(true) != null;
+            var isHealthPack = prefab.GetComponentInChildren<ItemHealthPack>(true) != null;
 
             // Keep drones on the existing approved list; identify them by any
             // of the item's exposed safe identifiers rather than PrefabName alone.
@@ -130,10 +131,10 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
             // components. Names alone never make an otherwise unknown item safe.
             var toolKind = GetApprovedToolKind(prefab);
 
-            if (!isUpgrade && !isApprovedDrone && !isCart && !isTracker && string.IsNullOrEmpty(toolKind))
+            if (!isUpgrade && !isHealthPack && !isApprovedDrone && !isCart && !isTracker && string.IsNullOrEmpty(toolKind))
                 continue;
 
-            var kind = isUpgrade ? "upgrade" : isApprovedDrone ? "drone" :
+            var kind = isUpgrade ? "upgrade" : isHealthPack ? "health_pack" : isApprovedDrone ? "drone" :
                 isCart ? "cart" : isTracker ? "tracker" : toolKind;
             var definition = UtilityItemDefinitions.FirstOrDefault(candidate =>
                 candidate.Kind == kind &&
@@ -152,13 +153,14 @@ public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
                     !string.IsNullOrWhiteSpace(itemName) ? itemName : prefabName;
             if (string.IsNullOrWhiteSpace(displayName))
                 displayName = kind == "upgrade" ? "Shop upgrade" :
+                    kind == "health_pack" ? "Health Pack" :
                     kind == "drone" ? "Approved drone" :
                     kind == "cart" ? "C.A.R.T." :
                     kind == "tracker" ? "Tracker" :
                     kind == "walkie_box" ? "Walkie Talkie Box" :
                     kind == "walkie_talkie" ? "Walkie Talkie" : "Leaf Blower";
 
-            if (kind == "upgrade") upgradeMatches++;
+            if (kind == "upgrade" || kind == "health_pack") upgradeMatches++;
             else if (kind == "drone") droneMatches++;
             else if (kind == "cart") cartMatches++;
             else if (kind == "tracker") trackerMatches++;
