@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+- Add target-player spawning using the redeeming broadcaster's Photon player identity while retaining host-authoritative execution.
+- Add weighted random selection across eligible monsters, valuables and approved utility items.
+- Report Photon player identity with each R.E.P.O. session heartbeat.
+- Add per-lobby Twitch reward session activation and delivery support through Spectrum Game Mods.
+- Preserve the existing mod-aware catalogues and registration API.
+
+
 ## 0.7.0
 - Add a public registration API for modded valuables, enemy setups and non-combat utility items that are not exposed through the game's normal discovery registries.
 - Discover modded drones, health packs and trackers by their runtime behaviour components rather than requiring vanilla asset names.

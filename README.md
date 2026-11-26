@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.7.0 introduces mod-aware catalogue discovery and a public registration API.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+**Version 0.8.0 adds per-lobby Twitch Channel Points rewards, session-aware redemption delivery and target-player spawning on top of the mod-aware catalogue and registration API.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
 
 ## Requirements
 
@@ -18,6 +18,14 @@ Spectrum's R.E.P.O. integration mod.
 4. Launch R.E.P.O. and press **F8** to open the Spectrum panel.
 
 The install archive contains exactly one file: `SpectrumRepoMod.dll` at the archive root.
+
+## Twitch reward sessions
+
+- **Per-lobby activation:** Control Center shows active R.E.P.O. lobbies, their connected players and the current host/client roles. Start Session enables the existing `Spawn Something!` Channel Points reward for the participants in that lobby; Stop Session disables it.
+- **Targeted spawning:** a redemption is routed to the host of the correct lobby but spawns relative to the player whose Twitch channel received it.
+- **Weighted random selection:** the host selects an eligible monster, valuable or approved utility item using the category weights configured in Control Center. Empty or disabled categories are excluded.
+- **Queue and delivery:** accepted redemptions are deduplicated, queued per active lobby, and acknowledged by the host. Unavailable target players wait for reconnection; unacknowledged sends can be retried without intentionally spawning twice.
+- **Automatic shutdown:** if the active lobby loses its host or all fresh mod connections, the gateway attempts to disable the reward through the existing Channel Points application.
 
 ## Catalogue discovery
 
