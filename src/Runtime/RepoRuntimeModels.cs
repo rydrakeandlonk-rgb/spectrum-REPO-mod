@@ -117,6 +117,32 @@ internal sealed class RepoRuntimePolicy
                 // Physical-item status was checked above. Cart discovery also
                 // requires an explicit cart identity in the catalogue builder.
             }
+            else if (kind == "tracker")
+            {
+                if (prefab.GetComponentInChildren<ItemTracker>(true) == null)
+                {
+                    reason = "The tracker prefab is missing its vanilla tracker behaviour component.";
+                    return false;
+                }
+            }
+            else if (kind == "noncombat_physical")
+            {
+                if (!item.physicalItem)
+                {
+                    reason = "The registered non-combat item is not marked as a physical item.";
+                    return false;
+                }
+
+                var components = prefab.GetComponentsInChildren<MonoBehaviour>(true);
+                var combatComponent = components.FirstOrDefault(component =>
+                    component != null && IsCombatComponentName(component.GetType().Name));
+                if (combatComponent != null)
+                {
+                    reason = "The registered item contains a known combat component (" +
+                        combatComponent.GetType().Name + ").";
+                    return false;
+                }
+            }
             else if (kind == "walkie_box")
             {
                 var box = prefab.GetComponentInChildren<ItemWalkieBox>(true);
@@ -180,6 +206,19 @@ internal sealed class RepoRuntimePolicy
 
         reason = string.Empty;
         return true;
+    }
+
+    private static bool IsCombatComponentName(string name)
+    {
+        return name.IndexOf("gun", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("grenade", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("mine", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("bomb", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("cannon", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("weapon", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("rocket", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("explosive", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("projectile", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }
 
