@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using BepInEx;
@@ -16,7 +17,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.7.0";
+    public const string PluginVersion = "0.8.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -216,7 +217,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void RefreshRuntimeState(bool force) => PublishCurrentState(force);
 
-    private void HandleSpawnRequest(string category, string requestId)
+    private void HandleSpawnRequest(string category, string requestId, int targetPhotonId)
     {
         if (string.IsNullOrWhiteSpace(requestId) || _gateway == null)
             return;
@@ -238,18 +239,20 @@ public sealed class Plugin : BaseUnityPlugin
             return;
         }
 
-        var result = SpawnRandomCandidate(category, out var itemName, out var detail);
-        _gateway.CompleteSpawn(requestId, category, result, itemName, detail);
+        var result = SpawnRandomCandidate(category, targetPhotonId, out var selectedCategory, out var itemName, out var detail);
+        _gateway.CompleteSpawn(requestId, selectedCategory, result, itemName, detail);
     }
 
     private void SpawnLocalTest(string category)
     {
-        var success = SpawnRandomCandidate(category, out var itemName, out var detail);
+        var localPhotonId = PhotonNetwork.LocalPlayer?.ActorNumber ?? -1;
+        var success = SpawnRandomCandidate(category, localPhotonId, out _, out var itemName, out var detail);
         _pairingStatus = success ? "Local test spawned: " + itemName : "Local test failed: " + detail;
     }
 
-    private bool SpawnRandomCandidate(string category, out string itemName, out string detail)
+    private bool SpawnRandomCandidate(string requestedCategory, int targetPhotonId, out string selectedCategory, out string itemName, out string detail)
     {
+        selectedCategory = requestedCategory;
         itemName = "";
         detail = "";
 
@@ -261,13 +264,47 @@ public sealed class Plugin : BaseUnityPlugin
                 return false;
             }
 
-            if (!Catalog.AllowedCandidates.Any(row => row.Category == category))
+            if (requestedCategory == "random")
+            {
+                var available = new[]
+                {
+                    new { Category = "monster", Weight = SpawnPolicy.MonsterWeight },
+                    new { Category = "utility_item", Weight = SpawnPolicy.UtilityItemWeight },
+                    new { Category = "valuable", Weight = SpawnPolicy.ValuableWeight }
+                }.Where(entry => entry.Weight > 0d && Catalog.AllowedCandidates.Any(row => row.Category == entry.Category)).ToArray();
+                if (available.Length == 0)
+                {
+                    Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
+                    available = new[]
+                    {
+                        new { Category = "monster", Weight = SpawnPolicy.MonsterWeight },
+                        new { Category = "utility_item", Weight = SpawnPolicy.UtilityItemWeight },
+                        new { Category = "valuable", Weight = SpawnPolicy.ValuableWeight }
+                    }.Where(entry => entry.Weight > 0d && Catalog.AllowedCandidates.Any(row => row.Category == entry.Category)).ToArray();
+                }
+                if (available.Length == 0)
+                {
+                    detail = "No enabled category currently has an eligible spawn candidate.";
+                    return false;
+                }
+                var totalWeight = available.Sum(entry => entry.Weight);
+                var roll = UnityEngine.Random.value * (float)totalWeight;
+                var chosen = available[available.Length - 1];
+                foreach (var entry in available)
+                {
+                    if (roll < entry.Weight) { chosen = entry; break; }
+                    roll -= (float)entry.Weight;
+                }
+                selectedCategory = chosen.Category;
+            }
+
+            if (!Catalog.AllowedCandidates.Any(row => row.Category == selectedCategory))
                 Catalog = RepoCatalogBuilder.Build(SpawnPolicy);
 
-            var candidates = Catalog.AllowedCandidates.Where(row => row.Category == category).ToArray();
+            var candidates = Catalog.AllowedCandidates.Where(row => row.Category == selectedCategory).ToArray();
             if (candidates.Length == 0)
             {
-                if (category == "utility_item")
+                if (selectedCategory == "utility_item")
                 {
                     var matched = Catalog.Rows.Count(row => row.Category == category);
                     var excluded = Catalog.Rows.FirstOrDefault(row => row.Category == category && !row.Allowed);
@@ -278,15 +315,15 @@ public sealed class Plugin : BaseUnityPlugin
                 }
                 else
                 {
-                    detail = "No eligible " + category + " entries are currently available.";
+                    detail = "No eligible " + selectedCategory + " entries are currently available.";
                 }
                 return false;
             }
 
-            var player = PlayerAvatar.instance;
+            var player = ResolveTargetPlayer(targetPhotonId);
             if (player == null)
             {
-                detail = "The local player is not ready.";
+                detail = "The redemption target is no longer present in this lobby.";
                 return false;
             }
 
@@ -307,9 +344,30 @@ public sealed class Plugin : BaseUnityPlugin
         catch (Exception error)
         {
             detail = "The game rejected the " + category + " spawn: " + error.Message;
-            Log.LogError("R.E.P.O. " + category + " spawn failed: " + error);
+            Log.LogError("R.E.P.O. " + selectedCategory + " spawn failed: " + error);
             return false;
         }
+    }
+
+
+    private static PlayerAvatar? ResolveTargetPlayer(int photonId)
+    {
+        if (photonId <= 0) return null;
+        try
+        {
+            var method = typeof(SemiFunc).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                .FirstOrDefault(candidate =>
+                    candidate.Name == "PlayerAvatarGetFromPhotonID" &&
+                    candidate.GetParameters().Length == 1 &&
+                    candidate.GetParameters()[0].ParameterType == typeof(int));
+            if (method != null)
+                return method.Invoke(null, new object[] { photonId }) as PlayerAvatar;
+        }
+        catch (Exception error)
+        {
+            Log.LogWarning("Could not resolve the R.E.P.O. redemption target: " + error.Message);
+        }
+        return null;
     }
 
     private void RememberRequest(string requestId)

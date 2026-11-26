@@ -31,7 +31,7 @@ internal sealed class RepoGatewayClient
             "Private R.E.P.O. host credential. Keep this value private.");
     }
 
-    public event Action<string, string>? SpawnRequested;
+    public event Action<string, string, int>? SpawnRequested;
     public bool IsConnected => _socket?.State == WebSocketState.Open;
     public bool IsConfigured =>
         Uri.TryCreate(_gatewayUrl.Value, UriKind.Absolute, out var uri) &&
@@ -86,14 +86,15 @@ internal sealed class RepoGatewayClient
         }
     }
 
-    public void SendSessionState(bool runActive, string lobbyId, bool isMasterClient)
+    public void SendSessionState(bool runActive, string lobbyId, bool isMasterClient, int photonId)
     {
         _ = Send(new SessionStateMessage
         {
             type = "session.state",
             run_active = runActive,
             lobby_id = lobbyId ?? "",
-            is_master_client = isMasterClient
+            is_master_client = isMasterClient,
+            photon_id = photonId
         }, _cancellation.Token);
     }
 
@@ -229,7 +230,7 @@ internal sealed class RepoGatewayClient
         }
         else if (envelope.type == "repo.spawn.request")
         {
-            SpawnRequested?.Invoke(envelope.category ?? "", envelope.request_id ?? "");
+            SpawnRequested?.Invoke(envelope.category ?? "", envelope.request_id ?? "", envelope.target_photon_id);
         }
     }
 
@@ -241,7 +242,10 @@ internal sealed class RepoGatewayClient
             Plugin.SpawnPolicy = new RepoRuntimePolicy(
                 config.categories.valuable?.enabled ?? true,
                 config.categories.monster?.enabled ?? true,
-                config.categories.utility_item?.enabled ?? true);
+                config.categories.utility_item?.enabled ?? true,
+                config.categories.monster?.weight ?? 1d,
+                config.categories.utility_item?.weight ?? 1d,
+                config.categories.valuable?.weight ?? 1d);
             Plugin.Catalog = RepoCatalogBuilder.Build(Plugin.SpawnPolicy);
         }
         catch (Exception error)
@@ -277,6 +281,7 @@ internal sealed class RepoGatewayClient
         public bool run_active;
         public string lobby_id = "";
         public bool is_master_client;
+        public int photon_id;
     }
 
     [Serializable] private sealed class SpawnAckMessage
@@ -319,6 +324,7 @@ internal sealed class RepoGatewayClient
         public bool ok;
         public string request_id = "";
         public string category = "";
+        public int target_photon_id;
         public RepoConfigPayload? config;
     }
 

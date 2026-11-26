@@ -11,13 +11,20 @@ internal sealed class RepoRuntimePolicy
     public bool ValuablesEnabled { get; }
     public bool MonstersEnabled { get; }
     public bool UtilityItemsEnabled { get; }
+    public double MonsterWeight { get; }
+    public double UtilityItemWeight { get; }
+    public double ValuableWeight { get; }
 
     public RepoRuntimePolicy(bool valuablesEnabled = true, bool monstersEnabled = true,
-        bool utilityItemsEnabled = true)
+        bool utilityItemsEnabled = true, double monsterWeight = 1d,
+        double utilityItemWeight = 1d, double valuableWeight = 1d)
     {
         ValuablesEnabled = valuablesEnabled;
         MonstersEnabled = monstersEnabled;
         UtilityItemsEnabled = utilityItemsEnabled;
+        MonsterWeight = monstersEnabled ? Math.Max(0d, Math.Min(1000d, monsterWeight)) : 0d;
+        UtilityItemWeight = utilityItemsEnabled ? Math.Max(0d, Math.Min(1000d, utilityItemWeight)) : 0d;
+        ValuableWeight = valuablesEnabled ? Math.Max(0d, Math.Min(1000d, valuableWeight)) : 0d;
     }
 
     public bool TryValidate(RepoCatalogRow? candidate, out string reason)
