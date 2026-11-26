@@ -113,6 +113,14 @@ internal sealed class RepoRuntimePolicy
                     return false;
                 }
             }
+            else if (kind == "health_pack")
+            {
+                if (prefab.GetComponentInChildren<ItemHealthPack>(true) == null)
+                {
+                    reason = "The health pack prefab is missing its vanilla health-pack component.";
+                    return false;
+                }
+            }
             else if (kind == "cart")
             {
                 // Physical-item status was checked above. Cart discovery also
