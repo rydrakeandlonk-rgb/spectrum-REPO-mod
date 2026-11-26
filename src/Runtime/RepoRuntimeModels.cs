@@ -120,7 +120,7 @@ internal sealed class RepoRuntimePolicy
             else if (kind == "walkie_box")
             {
                 var box = prefab.GetComponentInChildren<ItemWalkieBox>(true);
-                if (box == null || box.walkieBoxItem != item)
+                if (box == null || box.walkieBoxItem != item || box.walkieTalkieItem == item)
                 {
                     reason = "The walkie box is missing its vanilla box behaviour or item reference.";
                     return false;
@@ -148,9 +148,11 @@ internal sealed class RepoRuntimePolicy
             }
             else if (kind == "walkie_talkie")
             {
-                if (prefab.GetComponentInChildren<ItemWalkieTalkie>(true) == null)
+                if (prefab.GetComponentInChildren<ItemWalkieTalkie>(true) == null ||
+                    prefab.GetComponentInChildren<ItemEquippable>(true) == null ||
+                    prefab.GetComponentInChildren<ItemToggle>(true) == null)
                 {
-                    reason = "The walkie-talkie prefab is missing its vanilla behaviour component.";
+                    reason = "The walkie-talkie prefab is missing one or more required vanilla behaviour components.";
                     return false;
                 }
             }
