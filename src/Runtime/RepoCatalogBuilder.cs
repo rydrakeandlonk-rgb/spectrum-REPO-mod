@@ -61,8 +61,13 @@ internal static class RepoCatalogBuilder
         new("Phase Bridge R.E.P.O.", "Phase Bridge", "drone"),
         new("Semibot walkiee", "Semibot Walkies", "drone"),
         new("Defibro transparent", "Defibro", "drone"),
+        new("TrackerValuable", "Valuable Tracker", "trackervaluable"),
+        new("TrackerExtraction", "Extraction Tracker", "trackerextraction"),
+
         new("CartSmall", "Pocket C.A.R.T.", "cart"),
         new("CartBig", "C.A.R.T.", "cart"),
+        new("Scout", "Scout", "cart"),
+        new("Hauler", "Hauler", "cart"),
 
         new("WalkieBox", "Walkie Talkie Box", "walkie_box"),
         new("WalkieTalkie", "Walkie Talkie", "walkie_talkie"),
@@ -226,7 +231,8 @@ internal static class RepoCatalogBuilder
                     NormalizeIdentity(definition.DisplayName)));
 
             // C.A.R.T.s must be physical items and explicitly identify as a cart.
-            var isCart = item.physicalItem && identity.Contains("cart");
+            var isCart = item.physicalItem &&
+                (identity.Contains("cart") || identity.Contains("scout") || identity.Contains("hauler"));
 
             // These tools are admitted only by their exact vanilla behaviour
             // components. Names alone never make an otherwise unknown item safe.
