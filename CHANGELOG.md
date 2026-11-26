@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0
+- Add a public registration API for modded valuables, enemy setups and non-combat utility items that are not exposed through the game's normal discovery registries.
+- Discover modded drones and trackers by their runtime behaviour components rather than requiring vanilla asset names.
+- Correct tracker classification so both valuable and extraction trackers can pass the utility catalogue validator.
+- Add a conservative validation profile for explicitly registered non-combat physical items; reject known combat component families.
+- Refresh the catalogue every 30 seconds to pick up assets and registrations loaded after the initial scan.
+- Preserve the existing Control Center category IDs, host-only execution, prefab-reference network spawning and shared spawn executor.
+- Document mod author registration and compatibility limits.
+
 ## 0.6.0
 - Add a separate Tools catalogue for the 12 listed upgrades, 5 listed drones and 2 C.A.R.T.s.
 - Discover only the approved shop entries by their exact vanilla prefab names.
@@ -36,29 +45,24 @@
 - Test-branch builds produce artifacts without automatically publishing to Nexus Mods.
 
 ## 0.3.3
-- Ship only the root-level SpectrumRepoMod.dll in the Nexus/Vortex install archive.
+- Ship only the root-level SpectrumRepoMod.dll in the Nexus/Vortex install archive so Vortex routes it to BepInEx/plugins.
 - Keep manifest.json in the repository as build metadata but exclude it from the install archive.
 - Exclude README, changelog, and icon from the install archive as well.
 - Apply the DLL-only package rule to the local PowerShell build and GitHub Actions release pipeline.
 - Keep the plugin inert; only update its version identity.
 
 ## 0.3.2
-- Reduce the plugin to its BepInEx identity metadata only.
-- Remove the custom Awake method and startup log message.
-- Keep all game, networking, configuration, command, and gameplay functionality absent.
-- Retain standalone root-level DLL packaging for Vortex deployment diagnosis.
+- Reduce the mod to its BepInEx plugin identity metadata only.
+- Remove custom startup functionality while retaining package validation.
 
 ## 0.3.1
-- Package the BepInEx plugin DLL as a standalone archive-root file so Vortex can route it to BepInEx/plugins.
+- Package the BepInEx plugin DLL as a standalone archive-root file.
 - Stop shipping a BepInEx/plugins directory tree that can cause Vortex to manage the shared plugins directory as a deployment target.
-- Add package checks that reject a BepInEx directory in the install archive.
-- Keep the loader-only plugin behavior unchanged.
 
 ## 0.3.0
 - Replace the previous startup implementation with a minimal BepInEx loader-validation plugin.
 - Remove game-specific and networking code from the Stage 1 compiled assembly.
-- Compile only the minimal plugin entry point; legacy implementation files are retained but excluded from this build.
-- Keep the package limited to the Spectrum plugin and standard install metadata.
+- Keep legacy implementation files excluded from that build.
 
 ## 0.2.0
 - Reworked valuable discovery and spawning around vanilla valuable definitions.
