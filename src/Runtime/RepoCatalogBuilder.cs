@@ -6,17 +6,64 @@ using UnityEngine;
 namespace SpectrumRepoMod.Runtime;
 
 /// <summary>
-/// Builds from all currently loaded vanilla valuable presets and enemy setups,
-/// plus the active run's registries. It does not invent catalogue IDs.
+/// Builds the valuable and monster catalogues, plus a strict allowlist of
+/// verified vanilla upgrades, drones and C.A.R.T.s from loaded Item assets.
 /// </summary>
 internal static class RepoCatalogBuilder
 {
+    private sealed class UtilityItemDefinition
+    {
+        public string PrefabName { get; }
+        public string DisplayName { get; }
+        public string Kind { get; }
+
+        public UtilityItemDefinition(string prefabName, string displayName, string kind)
+        {
+            PrefabName = prefabName;
+            DisplayName = displayName;
+            Kind = kind;
+        }
+    }
+
+    // Names are taken from the Purchased Items page's Appearance column.
+    // This intentionally excludes all other shop categories and the unobtainable
+    // "Throw" upgrade.
+    private static readonly UtilityItemDefinition[] UtilityItemDefinitions =
+    {
+        new("Strength Upgrade", "Strength Upgrade", "upgrade"),
+        new("Range Upgrade", "Range Upgrade", "upgrade"),
+        new("Stamina Upgrade", "Stamina Upgrade", "upgrade"),
+        new("Sprint Speed Upgrade", "Sprint Speed Upgrade", "upgrade"),
+        new("Crouch Rest Upgrade", "Crouch Rest Upgrade", "upgrade"),
+        new("Upgrade Health Albedo", "Health Upgrade", "upgrade"),
+        new("Player Count Upgrade", "Map Player Count Upgrade", "upgrade"),
+        new("Tumble Launch Upgrade", "Tumble Launch Upgrade", "upgrade"),
+        new("Tumble Wings Upgrade", "Tumble Wings Upgrade", "upgrade"),
+        new("Extra Jump Upgrade", "Extra Jump Upgrade", "upgrade"),
+        new("Tumble Climb Upgrade", "Tumble Climb Upgrade", "upgrade"),
+        new("Death Head Battery Upgrade", "Death Head Battery Upgrade", "upgrade"),
+
+        new("DroneRecharge", "Recharge Drone", "drone"),
+        new("DroneIndestructible", "Indestructible Drone", "drone"),
+        new("DroneRoll", "Roll Drone", "drone"),
+        new("DroneFeather", "Feather Drone", "drone"),
+        new("DroneZeroGravity", "Zero Gravity Drone", "drone"),
+
+        new("CartSmall", "Pocket C.A.R.T.", "cart"),
+        new("CartBig", "C.A.R.T.", "cart")
+    };
+
+    private static readonly Dictionary<string, UtilityItemDefinition> UtilityItemsByPrefab =
+        UtilityItemDefinitions.ToDictionary(definition => definition.PrefabName,
+            StringComparer.OrdinalIgnoreCase);
+
     public static RepoCatalogSnapshot Build(RepoRuntimePolicy? policy = null)
     {
         policy ??= new RepoRuntimePolicy();
         var rows = new List<RepoCatalogRow>();
         AddValuables(rows, policy);
         AddMonsters(rows, policy);
+        AddUtilityItems(rows, policy);
         return new RepoCatalogSnapshot(rows);
     }
 
@@ -117,6 +164,36 @@ internal static class RepoCatalogBuilder
                 RepoSpawnTarget.ForMonster(setup), true, string.Empty);
             var allowed = policy.TryValidate(provisional, out var reason);
             rows.Add(new RepoCatalogRow("monster", id, name, provisional.Target, allowed, reason));
+        }
+    }
+
+    private static void AddUtilityItems(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
+    {
+        // PrefabRef.Prefab resolves through RunManager's active resource pools.
+        if (RunManager.instance == null) return;
+
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in Resources.FindObjectsOfTypeAll<Item>())
+        {
+            if (item == null || item.prefab == null || !item.prefab.IsValid())
+                continue;
+
+            var prefabName = item.prefab.PrefabName;
+            if (string.IsNullOrWhiteSpace(prefabName) ||
+                !UtilityItemsByPrefab.TryGetValue(prefabName, out var definition))
+                continue;
+
+            var path = item.prefab.ResourcePath;
+            if (string.IsNullOrWhiteSpace(path) || !seenPaths.Add(path))
+                continue;
+
+            var id = "utility_item:" + path;
+            var target = RepoSpawnTarget.ForUtilityItem(item, definition.Kind);
+            var provisional = new RepoCatalogRow("utility_item", id, definition.DisplayName,
+                target, true, string.Empty);
+            var allowed = policy.TryValidate(provisional, out var reason);
+            rows.Add(new RepoCatalogRow("utility_item", id, definition.DisplayName,
+                target, allowed, reason));
         }
     }
 }
