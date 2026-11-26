@@ -8,7 +8,7 @@ namespace SpectrumRepoMod.Runtime;
 /// <summary>Discovers and validates loaded enemy setup definitions.</summary>
 internal static class RepoMonsterCatalogue
 {
-public static void AddRowsList<RepoCatalogRow> rows, RepoRuntimePolicy policy)
+public static void AddRows(List<RepoCatalogRow> rows, RepoRuntimePolicy policy)
     {
         var setups = new List<EnemySetup>();
         var seenObjects = new HashSet<int>();
