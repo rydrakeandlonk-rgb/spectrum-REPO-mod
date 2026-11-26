@@ -23,7 +23,7 @@ The install archive contains exactly one file: `SpectrumRepoMod.dll` at the arch
 
 - **Valuables:** discovers valid prefab references from every loaded `LevelValuables` preset and the active level. Modded valuables included in those presets are eligible when they expose a valid `ValuableObject` prefab and resource path.
 - **Monsters:** discovers loaded `EnemySetup` assets and the active difficulty registries. Modded setups are included when they expose valid spawn prefab references.
-- **Shop utility items:** discovers loaded `Item` assets by verified game behaviours (upgrades, drones, trackers and supported tools), plus the existing cart identity rules. Names are used for display aliases, not as the sole safety check.
+- **Shop utility items:** discovers loaded `Item` assets by verified game behaviours (upgrades, health packs, drones, trackers and supported tools), plus the existing cart identity rules. Names are used for display aliases, not as the sole safety check.
 - **Late-loaded content:** the catalogue is rebuilt at level changes and on a bounded 30-second refresh, so mods that finish loading after the initial scan can be picked up.
 - **Control Center compatibility:** existing category IDs remain `valuable`, `monster` and `utility_item`. No backend category migration is required.
 - **Host authority:** only the current R.E.P.O. host executes shared spawns. The existing spawn executor remains the single spawning pathway.
@@ -50,7 +50,7 @@ RepoSpawnRegistry.RegisterUtilityItem(
     RepoUtilityItemKind.NonCombatPhysical);
 ```
 
-Registration IDs should be stable and unique within their category. Re-registering an ID replaces its previous definition; `Unregister(category, stableId)` removes it. Registrations are revalidated whenever the catalogue is rebuilt.
+Supported profiles are `Upgrade`, `HealthPack`, `Drone`, `Cart`, `Tracker` and `NonCombatPhysical`. Registration IDs should be stable and unique within their category. Re-registering an ID replaces its previous definition; `Unregister(category, stableId)` removes it. Registrations are revalidated whenever the catalogue is rebuilt.
 
 ### Compatibility limits
 
