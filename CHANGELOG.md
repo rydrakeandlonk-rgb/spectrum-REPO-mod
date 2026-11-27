@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+- Add rate-limited host-observed Photon player and PlayerAvatar owner snapshots for dashboard reconciliation.
+- Preserve individual participant eligibility and expose identity-resolution failures without blocking other lobby members.
+- Keep the existing 0.9.0 Nexus release unchanged.
+
 ## 0.9.0
 - Preserve the complete vanilla monster spawn lifecycle while correcting the player-detection target counter after spawn.
 - Keep the game's native monster setup, teleport handling and enemy-director registration.
