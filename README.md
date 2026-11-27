@@ -2,7 +2,14 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.9.0 resolves redemption targets by matching Photon actor ownership against the game's player list. Version 0.8.3 added monster relocation-friendly spawning and configurable player-specific native callouts.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+**Current mod version: 0.10.0.** The integration supports host-authoritative multiplayer spawning, targeted Twitch redemptions, validated game asset catalogues and native player callouts. The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+
+## Development documentation
+
+- [Spectrum Game Mod Development Standard](docs/SPECTRUM-MOD-DEVELOPMENT-STANDARD.md) — architecture, platform ownership, multiplayer design, security, performance, testing and release workflow for all future Spectrum game mods.
+- [R.E.P.O. Multiplayer Post-mortem](docs/MULTIPLAYER-POSTMORTEM-0.10.0.md) — the November 2026 host/client eligibility regression, evidence, fix, deployment record and reusable debugging checklist.
+- [Implementation plan](docs/IMPLEMENTATION-PLAN.md) — original integration architecture and validation plan.
+- [Reward selector verification](docs/REWARD-SELECTOR-VERIFICATION.md) — deterministic selection and catalogue test cases.
 
 ## Requirements
 
