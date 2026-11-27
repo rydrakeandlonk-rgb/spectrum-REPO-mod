@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.4
+- Resolve targeted redemptions by matching the supplied Photon actor number against each game-managed PlayerAvatar PhotonView owner.
+- Stop passing Photon actor numbers to PlayerAvatarGetFromPhotonID, which expects a PhotonView ID.
+- Log the lobby player list's actor numbers and PhotonView IDs when resolving a target.
+
+
 ## 0.8.3
 - Spawn monsters 20 game units below the target player so the game can relocate them without an obvious spawn flash.
 - Treat a non-throwing LevelGenerator.EnemySpawn call as accepted even when enemy-director bookkeeping updates later or the enemy is relocated.

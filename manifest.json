@@ -1,6 +1,6 @@
 {
   "name": "Spectrum_REPO_Mod",
-  "version_number": "0.8.3",
+  "version_number": "0.8.4",
   "website_url": "https://github.com/rydrakeandlonk-rgb/spectrum-REPO-mod",
   "description": "Spectrum R.E.P.O. integration with per-lobby Twitch rewards, target-aware host spawning, native player callouts and mod-aware catalogues.",
   "dependencies": [

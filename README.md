@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.8.3 adds monster relocation-friendly spawning and configurable player-specific native callouts. Version 0.8.2 improved Channel Points target-player resolution and added focused Photon identity diagnostics.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+**Version 0.8.4 resolves redemption targets by matching Photon actor ownership against the game's player list. Version 0.8.3 added monster relocation-friendly spawning and configurable player-specific native callouts.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
 
 ## Requirements
 
