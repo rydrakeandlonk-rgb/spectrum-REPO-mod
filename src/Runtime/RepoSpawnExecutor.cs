@@ -38,7 +38,7 @@ internal sealed class RepoSpawnExecutor
             return TrySpawnValuable(candidate, position, rotation, out result);
 
         if (string.Equals(candidate.Category, "monster", StringComparison.Ordinal))
-            return TrySpawnMonster(candidate, position, out result);
+            return TrySpawnMonster(candidate, position, rotation, out result);
 
         if (string.Equals(candidate.Category, "utility_item", StringComparison.Ordinal))
             return TrySpawnUtilityItem(candidate, position, rotation, out result);
@@ -94,7 +94,8 @@ internal sealed class RepoSpawnExecutor
         return true;
     }
 
-    private static bool TrySpawnMonster(RepoCatalogRow candidate, Vector3 position, out string result)
+    private static bool TrySpawnMonster(RepoCatalogRow candidate, Vector3 position,
+        Quaternion rotation, out string result)
     {
         var setup = candidate.Target.Monster;
         if (setup == null || setup.spawnObjects == null || setup.spawnObjects.Count == 0)
@@ -112,29 +113,74 @@ internal sealed class RepoSpawnExecutor
             }
         }
 
-        var generator = LevelGenerator.Instance;
         var director = EnemyDirector.instance;
-        if (generator == null || director == null)
+        var runManager = RunManager.instance;
+        if (LevelGenerator.Instance == null || director == null || runManager == null)
         {
             result = "The enemy director is not ready.";
             return false;
         }
 
-        var before = director.enemiesSpawned.Count;
-        generator.EnemySpawn(setup, position);
+        // Do not call LevelGenerator.EnemySpawn here. That vanilla path increments
+        // EnemiesSpawnTarget, which REPOLib v4.0.1 identified as preventing spawned
+        // enemies from detecting players. Reproduce the supported spawn lifecycle
+        // without that increment.
+        var spawnedCount = 0;
+        runManager.EnemiesSpawnedRemoveStart();
+        try
+        {
+            foreach (var prefabRef in setup.spawnObjects)
+            {
+                var loadedPrefab = prefabRef.Prefab;
+                if (loadedPrefab == null)
+                    continue;
 
-        // EnemySpawn hands placement and relocation to the game's enemy system.
-        // Some enemy types are repositioned immediately, and the director's
-        // bookkeeping can update after this call returns. Neither the monster's
-        // final position nor an immediate list-count change is a reliable failure
-        // signal. A thrown exception remains the failure signal for this API call.
-        var after = director.enemiesSpawned.Count;
-        if (after <= before)
-            Plugin.Log.LogInfo("EnemySpawn returned without an exception; enemy director tracking has not updated yet. Treating the game spawn request as accepted.");
+                GameObject spawned;
+                if (PhotonNetwork.CurrentRoom != null)
+                    spawned = PhotonNetwork.InstantiateRoomObject(prefabRef.ResourcePath,
+                        position, rotation, 0, null);
+                else
+                    spawned = UnityEngine.Object.Instantiate(loadedPrefab, position, rotation);
 
-        result = after > before
-            ? "Monster spawn accepted and registered by the enemy director."
-            : "Monster spawn request accepted by the game; final placement is handled by the enemy director.";
+                if (spawned == null)
+                    continue;
+
+                var enemyParent = spawned.GetComponent<EnemyParent>();
+                if (enemyParent == null)
+                {
+                    Plugin.Log.LogWarning("Spawned monster prefab " + loadedPrefab.name +
+                        " did not contain an EnemyParent component.");
+                    continue;
+                }
+
+                enemyParent.SetupDone = true;
+
+                var enemy = spawned.GetComponentInChildren<Enemy>();
+                if (enemy != null)
+                    enemy.EnemyTeleported(position);
+                else
+                    Plugin.Log.LogWarning("Spawned monster prefab " + loadedPrefab.name +
+                        " did not contain an Enemy component.");
+
+                enemyParent.firstSpawnPointUsed = true;
+                director.FirstSpawnPointAdd(enemyParent);
+                spawnedCount++;
+            }
+        }
+        finally
+        {
+            runManager.EnemiesSpawnedRemoveEnd();
+        }
+
+        if (spawnedCount == 0)
+        {
+            result = "The game did not successfully register a monster spawn.";
+            return false;
+        }
+
+        result = spawnedCount == 1
+            ? "Monster spawned and registered without incrementing the player-detection target."
+            : spawnedCount + " monster spawn objects registered without incrementing the player-detection target.";
         return true;
     }
 
