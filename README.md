@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.8.1 fixes local F8 test targeting and separates development session startup from Channel Points reward setup.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+**Version 0.8.2 improves Channel Points target-player resolution and adds focused Photon identity diagnostics. Version 0.8.1 fixed local F8 test targeting and separated development session startup from Channel Points reward setup.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
 
 ## Requirements
 
