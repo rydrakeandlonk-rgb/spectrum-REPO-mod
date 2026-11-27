@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using Photon.Pun;
 using UnityEngine;
 
@@ -38,7 +39,7 @@ internal sealed class RepoSpawnExecutor
             return TrySpawnValuable(candidate, position, rotation, out result);
 
         if (string.Equals(candidate.Category, "monster", StringComparison.Ordinal))
-            return TrySpawnMonster(candidate, position, rotation, out result);
+            return TrySpawnMonster(candidate, position, out result);
 
         if (string.Equals(candidate.Category, "utility_item", StringComparison.Ordinal))
             return TrySpawnUtilityItem(candidate, position, rotation, out result);
@@ -94,8 +95,7 @@ internal sealed class RepoSpawnExecutor
         return true;
     }
 
-    private static bool TrySpawnMonster(RepoCatalogRow candidate, Vector3 position,
-        Quaternion rotation, out string result)
+    private static bool TrySpawnMonster(RepoCatalogRow candidate, Vector3 position, out string result)
     {
         var setup = candidate.Target.Monster;
         if (setup == null || setup.spawnObjects == null || setup.spawnObjects.Count == 0)
@@ -113,74 +113,42 @@ internal sealed class RepoSpawnExecutor
             }
         }
 
+        var generator = LevelGenerator.Instance;
         var director = EnemyDirector.instance;
-        var runManager = RunManager.instance;
-        if (LevelGenerator.Instance == null || director == null || runManager == null)
+        if (generator == null || director == null)
         {
             result = "The enemy director is not ready.";
             return false;
         }
 
-        // Do not call LevelGenerator.EnemySpawn here. That vanilla path increments
-        // EnemiesSpawnTarget, which REPOLib v4.0.1 identified as preventing spawned
-        // enemies from detecting players. Reproduce the supported spawn lifecycle
-        // without that increment.
-        var spawnedCount = 0;
-        runManager.EnemiesSpawnedRemoveStart();
-        try
+        // Keep the game's complete vanilla spawn lifecycle. The vanilla method
+        // increments EnemiesSpawnTarget, but that increment prevents newly spawned
+        // enemies from registering players. REPOLib avoids that increment.
+        var targetField = typeof(LevelGenerator).GetField(
+            "EnemiesSpawnTarget", BindingFlags.Instance | BindingFlags.NonPublic);
+        if (targetField == null || targetField.FieldType != typeof(int))
         {
-            foreach (var prefabRef in setup.spawnObjects)
-            {
-                var loadedPrefab = prefabRef.Prefab;
-                if (loadedPrefab == null)
-                    continue;
-
-                GameObject spawned;
-                if (PhotonNetwork.CurrentRoom != null)
-                    spawned = PhotonNetwork.InstantiateRoomObject(prefabRef.ResourcePath,
-                        position, rotation, 0, null);
-                else
-                    spawned = UnityEngine.Object.Instantiate(loadedPrefab, position, rotation);
-
-                if (spawned == null)
-                    continue;
-
-                var enemyParent = spawned.GetComponent<EnemyParent>();
-                if (enemyParent == null)
-                {
-                    Plugin.Log.LogWarning("Spawned monster prefab " + loadedPrefab.name +
-                        " did not contain an EnemyParent component.");
-                    continue;
-                }
-
-                enemyParent.SetupDone = true;
-
-                var enemy = spawned.GetComponentInChildren<Enemy>();
-                if (enemy != null)
-                    enemy.EnemyTeleported(position);
-                else
-                    Plugin.Log.LogWarning("Spawned monster prefab " + loadedPrefab.name +
-                        " did not contain an Enemy component.");
-
-                enemyParent.firstSpawnPointUsed = true;
-                director.FirstSpawnPointAdd(enemyParent);
-                spawnedCount++;
-            }
-        }
-        finally
-        {
-            runManager.EnemiesSpawnedRemoveEnd();
-        }
-
-        if (spawnedCount == 0)
-        {
-            result = "The game did not successfully register a monster spawn.";
+            result = "The game version does not expose the expected enemy spawn target field; no monster was spawned.";
+            Plugin.Log.LogError("Could not locate LevelGenerator.EnemiesSpawnTarget. Refusing to spawn a monster without correcting the player-detection counter.");
             return false;
         }
 
-        result = spawnedCount == 1
-            ? "Monster spawned and registered without incrementing the player-detection target."
-            : spawnedCount + " monster spawn objects registered without incrementing the player-detection target.";
+        var targetBefore = (int)targetField.GetValue(generator);
+        generator.EnemySpawn(setup, position);
+        var targetAfter = (int)targetField.GetValue(generator);
+        var targetIncrement = targetAfter - targetBefore;
+
+        if (targetIncrement > 0)
+        {
+            targetField.SetValue(generator, targetAfter - targetIncrement);
+            Plugin.Log.LogInfo("Used vanilla monster spawning and removed its " +
+                targetIncrement + " EnemiesSpawnTarget increment(s) so spawned enemies can register players.");
+        }
+
+        // EnemyParent setup completes asynchronously, so immediate director-list
+        // counts are not a reliable success signal. EnemySpawn returning without
+        // throwing means the game's spawn request was accepted.
+        result = "Monster spawn accepted using vanilla setup with player detection preserved.";
         return true;
     }
 
