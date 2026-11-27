@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+- Include the host's requested Photon actor number, local host actor number, and observed player actor/ViewID pairs in failed target-resolution acknowledgements so Control Center diagnostics can expose the mismatch.
+- Preserve the existing target-resolution and spawn behaviour; this release adds diagnostics only.
+
+
 ## 0.9.0
 - Preserve the complete vanilla monster spawn lifecycle while correcting the player-detection target counter after spawn.
 - Keep the game's native monster setup, teleport handling and enemy-director registration.
