@@ -19,7 +19,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.9.0";
+    public const string PluginVersion = "0.10.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -50,6 +50,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
     private bool _lastIsMaster;
     private int _lastLevelInstanceId = -1;
     private float _nextStateReportAt;
+    private float _nextDiagnosticsReportAt;
     private float _nextCatalogueRefreshAt;
     private Rect _windowRect = new(24f, 24f, 430f, 310f);
 
@@ -218,6 +219,11 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
         _gateway.SendSessionState(runActive, lobbyId, isMaster, PhotonNetwork.LocalPlayer?.ActorNumber ?? 0);
         if (force || stateChanged || levelChanged || catalogueRefreshDue)
             _gateway.PublishCatalogue(runActive, lobbyId, isMaster);
+        if (runActive && isMaster && (force || Time.unscaledTime >= _nextDiagnosticsReportAt))
+        {
+            _gateway.SendDiagnosticsSnapshot(lobbyId);
+            _nextDiagnosticsReportAt = Time.unscaledTime + 30f;
+        }
 
         _lastRunActive = runActive;
         _lastLobbyId = lobbyId;
