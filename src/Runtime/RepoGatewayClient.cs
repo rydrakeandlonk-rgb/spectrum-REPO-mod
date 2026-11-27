@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BepInEx.Configuration;
+using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine;
 
 namespace SpectrumRepoMod.Runtime;
@@ -109,6 +112,57 @@ internal sealed class RepoGatewayClient
             item_name = itemName ?? "",
             detail = detail ?? ""
         }, _cancellation.Token);
+    }
+
+    public void SendDiagnosticsSnapshot(string lobbyId)
+    {
+        try
+        {
+            var photonPlayers = new List<PhotonPlayerSnapshot>();
+            foreach (var player in PhotonNetwork.PlayerList ?? Array.Empty<Player>())
+            {
+                if (player == null) continue;
+                photonPlayers.Add(new PhotonPlayerSnapshot
+                {
+                    actor_number = player.ActorNumber,
+                    user_id = player.UserId ?? "",
+                    nickname = player.NickName ?? ""
+                });
+            }
+
+            var avatarOwners = new List<AvatarOwnerSnapshot>();
+            var avatars = SemiFunc.PlayerGetList();
+            if (avatars != null)
+            {
+                foreach (var avatar in avatars)
+                {
+                    if (avatar == null) continue;
+                    var view = avatar.photonView;
+                    avatarOwners.Add(new AvatarOwnerSnapshot
+                    {
+                        owner_actor_number = view == null ? 0 : view.OwnerActorNr,
+                        photon_view_id = view == null ? 0 : view.ViewID
+                    });
+                }
+            }
+
+            _ = Send(new DiagnosticsSnapshotMessage
+            {
+                type = "repo.diagnostics.snapshot",
+                mod_version = Plugin.PluginVersion,
+                lobby_id = lobbyId ?? "",
+                local_actor_number = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0,
+                master_actor_number = PhotonNetwork.MasterClient?.ActorNumber ?? 0,
+                local_avatar_available = PlayerAvatar.instance != null,
+                photon_player_count = photonPlayers.Count,
+                photon_players = photonPlayers.ToArray(),
+                avatar_owners = avatarOwners.ToArray()
+            }, _cancellation.Token);
+        }
+        catch (Exception error)
+        {
+            Plugin.Log.LogWarning("Could not publish R.E.P.O. host diagnostics snapshot: " + error.Message);
+        }
     }
 
     public void PublishCatalogue(bool runActive, string lobbyId, bool isMasterClient)
@@ -292,6 +346,32 @@ internal sealed class RepoGatewayClient
         public bool success;
         public string item_name = "";
         public string detail = "";
+    }
+
+    [Serializable] private sealed class DiagnosticsSnapshotMessage
+    {
+        public string type = "";
+        public string mod_version = "";
+        public string lobby_id = "";
+        public int local_actor_number;
+        public int master_actor_number;
+        public bool local_avatar_available;
+        public int photon_player_count;
+        public PhotonPlayerSnapshot[] photon_players = Array.Empty<PhotonPlayerSnapshot>();
+        public AvatarOwnerSnapshot[] avatar_owners = Array.Empty<AvatarOwnerSnapshot>();
+    }
+
+    [Serializable] private sealed class PhotonPlayerSnapshot
+    {
+        public int actor_number;
+        public string user_id = "";
+        public string nickname = "";
+    }
+
+    [Serializable] private sealed class AvatarOwnerSnapshot
+    {
+        public int owner_actor_number;
+        public int photon_view_id;
     }
 
     [Serializable] private sealed class CatalogueMessage
