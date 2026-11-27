@@ -17,7 +17,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.8.1";
+    public const string PluginVersion = "0.8.2";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -229,6 +229,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         RememberRequest(requestId);
+        Log.LogInfo("R.E.P.O. redemption request received: request=" + requestId + ", category=" + category + ", targetPhotonId=" + targetPhotonId + ".");
 
         if (!string.Equals(category, "valuable", StringComparison.Ordinal) &&
             !string.Equals(category, "monster", StringComparison.Ordinal) &&
@@ -366,7 +367,36 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static PlayerAvatar? ResolveTargetPlayer(int photonId)
     {
-        if (photonId <= 0) return PhotonNetwork.CurrentRoom == null ? PlayerAvatar.instance : null;
+        var room = PhotonNetwork.CurrentRoom;
+        var localActorNumber = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
+        var localAvatar = PlayerAvatar.instance;
+
+        Log.LogInfo("Resolving R.E.P.O. redemption target: targetPhotonId=" + photonId +
+            ", localActorNumber=" + localActorNumber +
+            ", localAvatarAvailable=" + (localAvatar != null) +
+            ", room=" + (room?.Name ?? "<single-player/no room>") + ".");
+
+        if (photonId <= 0)
+        {
+            if (room == null && localAvatar != null)
+            {
+                Log.LogInfo("Using the local player avatar because this is a single-player session.");
+                return localAvatar;
+            }
+
+            Log.LogWarning("Cannot resolve redemption target: the supplied Photon actor ID is not valid for this lobby.");
+            return null;
+        }
+
+        // The host's own PlayerAvatar is already available directly. Prefer it when
+        // the authoritative target ID matches the local Photon actor number rather
+        // than depending on a game helper lookup that can return null during setup.
+        if (photonId == localActorNumber && localAvatar != null)
+        {
+            Log.LogInfo("Resolved redemption target directly to the local host avatar (Photon actor " + photonId + ").");
+            return localAvatar;
+        }
+
         try
         {
             var method = typeof(SemiFunc).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
@@ -374,13 +404,28 @@ public sealed class Plugin : BaseUnityPlugin
                     candidate.Name == "PlayerAvatarGetFromPhotonID" &&
                     candidate.GetParameters().Length == 1 &&
                     candidate.GetParameters()[0].ParameterType == typeof(int));
-            if (method != null)
-                return method.Invoke(null, new object[] { photonId }) as PlayerAvatar;
+
+            if (method == null)
+            {
+                Log.LogWarning("R.E.P.O. target lookup helper PlayerAvatarGetFromPhotonID(int) was not found.");
+                return null;
+            }
+
+            var resolved = method.Invoke(null, new object[] { photonId }) as PlayerAvatar;
+            if (resolved != null)
+            {
+                Log.LogInfo("Resolved redemption target through PlayerAvatarGetFromPhotonID: Photon actor " + photonId + ".");
+                return resolved;
+            }
+
+            Log.LogWarning("PlayerAvatarGetFromPhotonID returned null for target Photon actor " + photonId +
+                ". Local actor is " + localActorNumber + "; local avatar available=" + (localAvatar != null) + ".");
         }
         catch (Exception error)
         {
-            Log.LogWarning("Could not resolve the R.E.P.O. redemption target: " + error.Message);
+            Log.LogWarning("Could not resolve R.E.P.O. redemption target Photon actor " + photonId + ": " + error);
         }
+
         return null;
     }
 
