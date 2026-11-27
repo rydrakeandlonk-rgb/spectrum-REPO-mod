@@ -19,7 +19,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.8.4";
+    public const string PluginVersion = "0.9.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
