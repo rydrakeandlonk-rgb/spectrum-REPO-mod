@@ -19,7 +19,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.9.0";
+    public const string PluginVersion = "0.10.0";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
@@ -350,10 +350,13 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                 return false;
             }
 
-            var player = targetOverride ?? ResolveTargetPlayer(targetPhotonId);
+            var lookupDiagnostic = "";
+            var player = targetOverride ?? ResolveTargetPlayer(targetPhotonId, out lookupDiagnostic);
             if (player == null)
             {
-                detail = "The redemption target is no longer present in this lobby.";
+                detail = string.IsNullOrWhiteSpace(lookupDiagnostic)
+                    ? "The redemption target is no longer present in this lobby."
+                    : lookupDiagnostic;
                 return false;
             }
 
@@ -382,8 +385,9 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
     }
 
 
-    private static PlayerAvatar? ResolveTargetPlayer(int photonActorNumber)
+    private static PlayerAvatar? ResolveTargetPlayer(int photonActorNumber, out string diagnostic)
     {
+        diagnostic = "";
         var room = PhotonNetwork.CurrentRoom;
         var localActorNumber = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
         var localAvatar = PlayerAvatar.instance;
@@ -401,7 +405,9 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                 return localAvatar;
             }
 
-            Log.LogWarning("Cannot resolve redemption target: the supplied Photon actor number is not valid for this lobby.");
+            diagnostic = "The redemption target is no longer present in this lobby. targetActor=" +
+                photonActorNumber + "; hostActor=" + localActorNumber + "; players=invalid-target";
+            Log.LogWarning(diagnostic);
             return null;
         }
 
@@ -413,11 +419,12 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
 
         try
         {
-            // PlayerAvatarGetFromPhotonID expects a PhotonView ID, not a Photon
-            // actor number. Channel Point routing deliberately carries ActorNumber,
-            // so resolve that identity through the game's authoritative player list.
+            // ActorNumber is the routing identity. PhotonView.ViewID is a different
+            // identifier; report both so the host-side lookup can be diagnosed in
+            // Control Center without requiring access to the host's local log.
             var players = SemiFunc.PlayerGetList();
             var inspectedPlayers = 0;
+            var playerIdentities = new List<string>();
             if (players != null)
             {
                 foreach (var player in players)
@@ -432,6 +439,9 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                     Log.LogInfo("R.E.P.O. lobby player: ownerActorNumber=" + ownerActorNumber +
                         ", photonViewId=" + viewId + ".");
 
+                    if (playerIdentities.Count < 5)
+                        playerIdentities.Add(ownerActorNumber + "/" + viewId);
+
                     if (ownerActorNumber != photonActorNumber)
                         continue;
 
@@ -441,16 +451,24 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                 }
             }
 
+            var playersSummary = players == null
+                ? "null"
+                : playerIdentities.Count == 0 ? "empty" : string.Join(",", playerIdentities.ToArray());
+            diagnostic = "The redemption target is no longer present in this lobby. targetActor=" +
+                photonActorNumber + "; hostActor=" + localActorNumber + "; count=" + inspectedPlayers +
+                "; players=" + playersSummary;
             Log.LogWarning("Could not find a PlayerAvatar owned by Photon actor " + photonActorNumber +
                 " in SemiFunc.PlayerGetList(). Inspected " + inspectedPlayers + " player avatar(s).");
+            return null;
         }
         catch (Exception error)
         {
+            diagnostic = "The redemption target is no longer present in this lobby. targetActor=" +
+                photonActorNumber + "; hostActor=" + localActorNumber + "; lookupError=" + error.GetType().Name;
             Log.LogWarning("Could not resolve R.E.P.O. redemption target Photon actor " +
                 photonActorNumber + " from the game player list: " + error);
+            return null;
         }
-
-        return null;
     }
 
     private void BindAnnouncementSettings()
