@@ -458,14 +458,14 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
         _shopAnnouncementsEnabled = Config.Bind("Spawn Announcements", "ShopItemsEnabled", true,
             "Allow callouts when a shop item is spawned.");
         _valuableAnnouncementPhrases = Config.Bind("Spawn Announcements", "ValuablePhrases",
-            "Ooh, what's this?\nValuable incoming!\nSomething shiny just arrived!\nDelivery for me!",
-            "One phrase per line. A random phrase is selected for each valuable.");
+            "Ooh, what's this? | Valuable incoming! | Something shiny just arrived! | Delivery for me!",
+            "Separate phrases with |. A random phrase is selected for each valuable.");
         _monsterAnnouncementPhrases = Config.Bind("Spawn Announcements", "MonsterPhrases",
-            "We've got company!\nUh, that's not friendly!\nSomething just joined the party!\nI have a bad feeling about this.",
-            "One phrase per line. A random phrase is selected for each monster.");
+            "We've got company! | Uh, that's not friendly! | Something just joined the party! | I have a bad feeling about this.",
+            "Separate phrases with |. A random phrase is selected for each monster.");
         _shopAnnouncementPhrases = Config.Bind("Spawn Announcements", "ShopItemPhrases",
-            "Item spawning!\nNew equipment!\nLook what just arrived!\nA little upgrade never hurts!",
-            "One phrase per line. A random phrase is selected for each shop item.");
+            "Item spawning! | New equipment! | Look what just arrived! | A little upgrade never hurts!",
+            "Separate phrases with |. A random phrase is selected for each shop item.");
         Config.Save();
     }
 
@@ -499,7 +499,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
             if (!enabled.Value)
                 return;
 
-            var options = phrases.Value.Split(new[] { '\r', '\n' },
+            var options = phrases.Value.Split(new[] { '|' },
                 StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim())
                 .Where(line => !string.IsNullOrWhiteSpace(line))
