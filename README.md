@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.9.0 resolves redemption targets by matching Photon actor ownership against the game's player list. Version 0.8.3 added monster relocation-friendly spawning and configurable player-specific native callouts.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+**Version 0.10.0 adds host-side target identity details to failed redemption acknowledgements in Control Center diagnostics. Version 0.9.0 resolves redemption targets by matching Photon actor ownership against the game's player list. Version 0.8.3 added monster relocation-friendly spawning and configurable player-specific native callouts.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
 
 ## Requirements
 
@@ -25,6 +25,7 @@ The install archive contains exactly one file: `SpectrumRepoMod.dll` at the arch
 - **Targeted spawning:** a redemption is routed to the host of the correct lobby but spawns relative to the player whose Twitch channel received it.
 - **Weighted random selection:** the host selects an eligible monster, valuable or approved utility item using the category weights configured in Control Center. Empty or disabled categories are excluded.
 - **Queue and delivery:** accepted redemptions are deduplicated, queued per active lobby, and acknowledged by the host. Unavailable target players wait for reconnection; unacknowledged sends can be retried without intentionally spawning twice.
+- **Target diagnostics:** failed host-side player lookups include the requested Photon actor number, host actor number and observed player actor/ViewID pairs in the game acknowledgement, which are visible in Control Center's redemption diagnostics.
 - **Automatic shutdown:** if the active lobby loses its host or all fresh mod connections, the development session is stopped; configured reward shutdown is handled when reward activation is enabled.
 
 ## Catalogue discovery
