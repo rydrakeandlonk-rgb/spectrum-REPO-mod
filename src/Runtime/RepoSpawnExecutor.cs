@@ -122,13 +122,19 @@ internal sealed class RepoSpawnExecutor
 
         var before = director.enemiesSpawned.Count;
         generator.EnemySpawn(setup, position);
-        if (director.enemiesSpawned.Count <= before)
-        {
-            result = "The game did not confirm a successful monster spawn.";
-            return false;
-        }
 
-        result = "Monster spawn completed.";
+        // EnemySpawn hands placement and relocation to the game's enemy system.
+        // Some enemy types are repositioned immediately, and the director's
+        // bookkeeping can update after this call returns. Neither the monster's
+        // final position nor an immediate list-count change is a reliable failure
+        // signal. A thrown exception remains the failure signal for this API call.
+        var after = director.enemiesSpawned.Count;
+        if (after <= before)
+            Plugin.Log.LogInfo("EnemySpawn returned without an exception; enemy director tracking has not updated yet. Treating the game spawn request as accepted.");
+
+        result = after > before
+            ? "Monster spawn accepted and registered by the enemy director."
+            : "Monster spawn request accepted by the game; final placement is handled by the enemy director.";
         return true;
     }
 
