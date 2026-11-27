@@ -499,7 +499,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
             if (!enabled.Value)
                 return;
 
-            var options = phrases.Value.Split(new[] { '\\r', '\\n' },
+            var options = phrases.Value.Split(new[] { '\r', '\n' },
                 StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim())
                 .Where(line => !string.IsNullOrWhiteSpace(line))
@@ -538,7 +538,8 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
             return;
 
         var localActor = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
-        if (localActor <= 0 || photonEvent.Sender <= 0)
+        var masterActor = PhotonNetwork.MasterClient?.ActorNumber ?? 0;
+        if (localActor <= 0 || masterActor <= 0 || photonEvent.Sender != masterActor)
             return;
 
         try
