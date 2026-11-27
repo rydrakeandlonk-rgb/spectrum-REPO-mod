@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+- Preserve the complete vanilla monster spawn lifecycle while correcting the player-detection target counter after spawn.
+- Keep the game's native monster setup, teleport handling and enemy-director registration.
+
 ## 0.8.4
 - Resolve targeted redemptions by matching the supplied Photon actor number against each game-managed PlayerAvatar PhotonView owner.
 - Stop passing Photon actor numbers to PlayerAvatarGetFromPhotonID, which expects a PhotonView ID.
