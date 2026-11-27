@@ -473,7 +473,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
     {
         try
         {
-            if (!_announcementsEnabled.Value || targetPhotonId <= 0)
+            if (!_announcementsEnabled.Value)
                 return;
 
             ConfigEntry<bool> enabled;
@@ -509,8 +509,14 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                 return;
 
             var phrase = options[UnityEngine.Random.Range(0, options.Length)];
+            if (targetPhotonId <= 0 && PhotonNetwork.CurrentRoom == null)
+            {
+                PlaySpawnCallout(phrase);
+                return;
+            }
+
             var localActor = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
-            if (targetPhotonId == localActor)
+            if (targetPhotonId == localActor && localActor > 0)
             {
                 PlaySpawnCallout(phrase);
                 return;
@@ -520,7 +526,7 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                 return;
 
             var sent = PhotonNetwork.RaiseEvent(SpawnCalloutEventCode,
-                new object[] { phrase },
+                new object[] { "spectrum.repo.spawn-callout.v1", phrase },
                 new RaiseEventOptions { TargetActors = new[] { targetPhotonId } },
                 SendOptions.SendReliable);
             if (!sent)
@@ -545,8 +551,10 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
         try
         {
             if (!(photonEvent.CustomData is object[] payload) ||
-                payload.Length < 1 ||
-                !(payload[0] is string phrase) ||
+                payload.Length < 2 ||
+                !(payload[0] is string marker) ||
+                marker != "spectrum.repo.spawn-callout.v1" ||
+                !(payload[1] is string phrase) ||
                 string.IsNullOrWhiteSpace(phrase))
                 return;
 
