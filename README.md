@@ -2,7 +2,7 @@
 
 Spectrum's R.E.P.O. integration mod.
 
-**Version 0.8.2 improves Channel Points target-player resolution and adds focused Photon identity diagnostics. Version 0.8.1 fixed local F8 test targeting and separated development session startup from Channel Points reward setup.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
+**Version 0.8.3 adds monster relocation-friendly spawning and configurable player-specific native callouts. Version 0.8.2 improved Channel Points target-player resolution and added focused Photon identity diagnostics.** The catalogue discovers eligible content exposed through the game's loaded asset registries, validates every candidate, and retains the existing vanilla spawn executors and Control Center category IDs.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ The install archive contains exactly one file: `SpectrumRepoMod.dll` at the arch
 - **Shop utility items:** discovers loaded `Item` assets by verified game behaviours (upgrades, health packs, drones, trackers and supported tools), plus the existing cart identity rules. Names are used for display aliases, not as the sole safety check.
 - **Late-loaded content:** the catalogue is rebuilt at level changes and on a bounded 30-second refresh, so mods that finish loading after the initial scan can be picked up.
 - **Control Center compatibility:** existing category IDs remain `valuable`, `monster` and `utility_item`. No backend category migration is required.
-- **Host authority:** only the current R.E.P.O. host executes shared spawns. The existing spawn executor remains the single spawning pathway.
+- **Host authority:** only the current R.E.P.O. host executes shared spawns. The existing spawn executor remains the single spawning pathway.\n- **Monster placement:** monsters are requested 20 game units below the target player; the game handles their final legal placement. Spawn acknowledgement does not depend on their final position or an immediate enemy-list update.\n- **Native player callouts:** successful valuable, monster and shop-item spawns can trigger a random in-game possessed-chat line on the player whose channel received the redemption. Callouts are independent of spawn success.\n- **Callout settings:** edit `BepInEx/config/com.spectrum.repomod.cfg` under `[Spawn Announcements]`. `Enabled` is the master switch; `ValuablesEnabled`, `MonstersEnabled` and `ShopItemsEnabled` control categories. Edit each `*Phrases` value with one phrase per line. Changes take effect after restarting the game.
 
 ## Mod author registration API
 
