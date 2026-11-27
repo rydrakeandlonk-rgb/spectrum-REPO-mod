@@ -56,6 +56,8 @@ jobs:
 
       - name: Verify explicit runtime compilation boundary
         shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
         run: |
           set -euo pipefail
           grep -q 'EnableDefaultCompileItems>false' src/SpectrumRepoMod.csproj
