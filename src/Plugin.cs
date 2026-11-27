@@ -429,17 +429,14 @@ public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
                     var playerView = player.photonView;
                     var ownerActorNumber = playerView == null ? 0 : playerView.OwnerActorNr;
                     var viewId = playerView == null ? 0 : playerView.ViewID;
-                    Log.LogInfo("R.E.P.O. lobby player: name=" + (player.playerName ?? "<unknown>") +
-                        ", ownerActorNumber=" + ownerActorNumber +
-                        ", photonViewId=" + viewId +
-                        ", isLocal=" + player.isLocal + ".");
+                    Log.LogInfo("R.E.P.O. lobby player: ownerActorNumber=" + ownerActorNumber +
+                        ", photonViewId=" + viewId + ".");
 
                     if (ownerActorNumber != photonActorNumber)
                         continue;
 
                     Log.LogInfo("Resolved redemption target from the game player list: actor " +
-                        photonActorNumber + ", player=" + (player.playerName ?? "<unknown>") +
-                        ", PhotonView ID=" + viewId + ".");
+                        photonActorNumber + ", PhotonView ID=" + viewId + ".");
                     return player;
                 }
             }
