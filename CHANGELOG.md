@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.3
+- Spawn monsters 20 game units below the target player so the game can relocate them without an obvious spawn flash.
+- Treat a non-throwing LevelGenerator.EnemySpawn call as accepted even when enemy-director bookkeeping updates later or the enemy is relocated.
+- Add player-targeted native possessed-chat callouts for valuable, monster and shop-item spawns.
+- Add master and per-category callout toggles plus editable newline-separated random phrase lists in the BepInEx configuration.
+- Keep callout delivery independent from spawn success; a failed callout never reverses or fails a spawn.
+
 ## 0.8.2
 - Improve Channel Points target-player resolution for the local host.
 - Add focused Photon identity and target lookup diagnostics for troubleshooting remote redemption delivery.
