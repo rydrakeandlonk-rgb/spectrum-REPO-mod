@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2
+- Improve Channel Points target-player resolution for the local host.
+- Add focused Photon identity and target lookup diagnostics for troubleshooting remote redemption delivery.
+
+
 ## 0.8.1
 - Allow Control Center development sessions to start without an existing Channel Points reward.
 - Keep redemption acceptance gated until subscription and reward activation are explicitly ready.
