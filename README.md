@@ -37,7 +37,7 @@ The install archive contains exactly one file: `SpectrumRepoMod.dll` at the arch
 - **Host authority:** only the current R.E.P.O. host executes shared spawns. The existing spawn executor remains the single spawning pathway.
 - **Monster placement:** monsters are requested 20 game units below the target player; the game handles their final legal placement. Spawn acknowledgement does not depend on their final position or an immediate enemy-list update.
 - **Native player callouts:** successful valuable, monster and shop-item spawns can trigger a random in-game possessed-chat line on the player whose channel received the redemption. Callouts are independent of spawn success.
-- **Callout settings:** edit `BepInEx/config/com.spectrum.repomod.cfg` under `[Spawn Announcements]`. `Enabled` is the master switch; `ValuablesEnabled`, `MonstersEnabled` and `ShopItemsEnabled` control categories. Edit each `*Phrases` value with one phrase per line. Changes take effect after restarting the game.
+- **Callout settings:** edit `BepInEx/config/com.spectrum.repomod.cfg` under `[Spawn Announcements]`. `Enabled` is the master switch; `ValuablesEnabled`, `MonstersEnabled` and `ShopItemsEnabled` control categories. Edit each `*Phrases` value with phrases separated with `|`. Changes take effect after restarting the game.
 
 ## Mod author registration API
 
