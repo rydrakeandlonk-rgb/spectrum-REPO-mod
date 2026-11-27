@@ -69,9 +69,9 @@ jobs:
           grep -q '<Compile Include="Runtime/RepoUtilityItemCatalogue.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoSpawnExecutor.cs"' src/SpectrumRepoMod.csproj
           grep -q '<Compile Include="Runtime/RepoSpawnRegistry.cs"' src/SpectrumRepoMod.csproj
-          grep -q 'PluginVersion = "0.8.2"' src/Plugin.cs
-          grep -q '<Version>0.8.2</Version>' src/SpectrumRepoMod.csproj
-          test "$PACKAGE_VERSION" = "0.8.2"
+          grep -q 'PluginVersion = "0.8.3"' src/Plugin.cs
+          grep -q '<Version>0.8.3</Version>' src/SpectrumRepoMod.csproj
+          test "$PACKAGE_VERSION" = "0.8.3"
           if grep -q '<Compile Include="Rewards/' src/SpectrumRepoMod.csproj; then
             echo "::error::Unexpected reward runtime source was added to the R.E.P.O. test build."
             exit 1
