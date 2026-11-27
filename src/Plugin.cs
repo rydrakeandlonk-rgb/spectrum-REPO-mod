@@ -7,24 +7,36 @@ using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Logging;
 using Photon.Pun;
+using Photon.Realtime;
+using ExitGames.Client.Photon;
+using BepInEx.Configuration;
 using UnityEngine;
 using SpectrumRepoMod.Runtime;
 
 namespace SpectrumRepoMod;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-public sealed class Plugin : BaseUnityPlugin
+public sealed class Plugin : BaseUnityPlugin, IOnEventCallback
 {
     public const string PluginGuid = "com.spectrum.repomod";
     public const string PluginName = "Spectrum R.E.P.O. Mod";
-    public const string PluginVersion = "0.8.2";
+    public const string PluginVersion = "0.8.3";
 
     internal static Plugin? Instance { get; private set; }
     internal static ManualLogSource Log { get; private set; } = null!;
     internal static RepoRuntimePolicy SpawnPolicy { get; set; } = new(true, true, true);
     internal static RepoCatalogSnapshot Catalog { get; set; } = RepoCatalogSnapshot.Empty;
 
+    private const byte SpawnCalloutEventCode = 198;
+    private static readonly Color SpawnCalloutColor = new(1f, 0.82f, 0.35f, 1f);
     private readonly RepoSpawnExecutor _spawnExecutor = new();
+    private ConfigEntry<bool> _announcementsEnabled = null!;
+    private ConfigEntry<bool> _valuableAnnouncementsEnabled = null!;
+    private ConfigEntry<bool> _monsterAnnouncementsEnabled = null!;
+    private ConfigEntry<bool> _shopAnnouncementsEnabled = null!;
+    private ConfigEntry<string> _valuableAnnouncementPhrases = null!;
+    private ConfigEntry<string> _monsterAnnouncementPhrases = null!;
+    private ConfigEntry<string> _shopAnnouncementPhrases = null!;
     private readonly HashSet<string> _processedRequests = new(StringComparer.Ordinal);
     private readonly Queue<string> _processedRequestOrder = new();
     private RepoPairingClient? _pairingClient;
@@ -48,6 +60,8 @@ public sealed class Plugin : BaseUnityPlugin
         Log = Logger;
         SpawnPolicy = new RepoRuntimePolicy(true, true, true);
         Catalog = RepoCatalogSnapshot.Empty;
+        BindAnnouncementSettings();
+        PhotonNetwork.AddCallbackTarget(this);
 
         _pairingClient = new RepoPairingClient();
         _gateway = new RepoGatewayClient(Config);
@@ -242,6 +256,8 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         var result = SpawnRandomCandidate(category, targetPhotonId, out var selectedCategory, out var itemName, out var detail);
+        if (result)
+            TrySendSpawnCallout(selectedCategory, targetPhotonId);
         _gateway.CompleteSpawn(requestId, selectedCategory, result, itemName, detail);
     }
 
@@ -349,7 +365,9 @@ public sealed class Plugin : BaseUnityPlugin
                 forward = Vector3.forward;
             forward.Normalize();
 
-            var position = player.transform.position + forward * 1.35f + Vector3.up * 0.7f;
+            var position = selectedCategory == "monster"
+                ? player.transform.position + Vector3.down * 20f
+                : player.transform.position + forward * 1.35f + Vector3.up * 0.7f;
             var rotation = Quaternion.LookRotation(forward, Vector3.up);
             var success = _spawnExecutor.TrySpawn(candidate, SpawnPolicy, position, rotation, out detail);
             if (success)
@@ -429,6 +447,135 @@ public sealed class Plugin : BaseUnityPlugin
         return null;
     }
 
+    private void BindAnnouncementSettings()
+    {
+        _announcementsEnabled = Config.Bind("Spawn Announcements", "Enabled", true,
+            "Master switch for native in-game spawn callouts.");
+        _valuableAnnouncementsEnabled = Config.Bind("Spawn Announcements", "ValuablesEnabled", true,
+            "Allow callouts when a valuable is spawned.");
+        _monsterAnnouncementsEnabled = Config.Bind("Spawn Announcements", "MonstersEnabled", true,
+            "Allow callouts when a monster is spawned.");
+        _shopAnnouncementsEnabled = Config.Bind("Spawn Announcements", "ShopItemsEnabled", true,
+            "Allow callouts when a shop item is spawned.");
+        _valuableAnnouncementPhrases = Config.Bind("Spawn Announcements", "ValuablePhrases",
+            "Ooh, what's this?\nValuable incoming!\nSomething shiny just arrived!\nDelivery for me!",
+            "One phrase per line. A random phrase is selected for each valuable.");
+        _monsterAnnouncementPhrases = Config.Bind("Spawn Announcements", "MonsterPhrases",
+            "We've got company!\nUh, that's not friendly!\nSomething just joined the party!\nI have a bad feeling about this.",
+            "One phrase per line. A random phrase is selected for each monster.");
+        _shopAnnouncementPhrases = Config.Bind("Spawn Announcements", "ShopItemPhrases",
+            "Item spawning!\nNew equipment!\nLook what just arrived!\nA little upgrade never hurts!",
+            "One phrase per line. A random phrase is selected for each shop item.");
+        Config.Save();
+    }
+
+    private void TrySendSpawnCallout(string category, int targetPhotonId)
+    {
+        try
+        {
+            if (!_announcementsEnabled.Value || targetPhotonId <= 0)
+                return;
+
+            ConfigEntry<bool> enabled;
+            ConfigEntry<string> phrases;
+            switch (category)
+            {
+                case "valuable":
+                    enabled = _valuableAnnouncementsEnabled;
+                    phrases = _valuableAnnouncementPhrases;
+                    break;
+                case "monster":
+                    enabled = _monsterAnnouncementsEnabled;
+                    phrases = _monsterAnnouncementPhrases;
+                    break;
+                case "utility_item":
+                    enabled = _shopAnnouncementsEnabled;
+                    phrases = _shopAnnouncementPhrases;
+                    break;
+                default:
+                    return;
+            }
+
+            if (!enabled.Value)
+                return;
+
+            var options = phrases.Value.Split(new[] { '\\r', '\\n' },
+                StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Select(line => line.Length > 180 ? line.Substring(0, 180) : line)
+                .ToArray();
+            if (options.Length == 0)
+                return;
+
+            var phrase = options[UnityEngine.Random.Range(0, options.Length)];
+            var localActor = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
+            if (targetPhotonId == localActor)
+            {
+                PlaySpawnCallout(phrase);
+                return;
+            }
+
+            if (PhotonNetwork.CurrentRoom == null)
+                return;
+
+            var sent = PhotonNetwork.RaiseEvent(SpawnCalloutEventCode,
+                new object[] { phrase },
+                new RaiseEventOptions { TargetActors = new[] { targetPhotonId } },
+                SendOptions.SendReliable);
+            if (!sent)
+                Log.LogWarning("Spawn succeeded, but its player-specific callout could not be queued for Photon actor " + targetPhotonId + ".");
+        }
+        catch (Exception error)
+        {
+            Log.LogWarning("Spawn succeeded, but its callout could not be sent: " + error.Message);
+        }
+    }
+
+    public void OnEvent(EventData photonEvent)
+    {
+        if (photonEvent == null || photonEvent.Code != SpawnCalloutEventCode)
+            return;
+
+        var localActor = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
+        if (localActor <= 0 || photonEvent.Sender <= 0)
+            return;
+
+        try
+        {
+            if (!(photonEvent.CustomData is object[] payload) ||
+                payload.Length < 1 ||
+                !(payload[0] is string phrase) ||
+                string.IsNullOrWhiteSpace(phrase))
+                return;
+
+            PlaySpawnCallout(phrase);
+        }
+        catch (Exception error)
+        {
+            Log.LogWarning("Could not play the received spawn callout: " + error.Message);
+        }
+    }
+
+    private static void PlaySpawnCallout(string phrase)
+    {
+        try
+        {
+            if (ChatManager.instance == null)
+                return;
+
+            var localeCode = TTSPronunciation.LocaleCodeGet(SemiFunc.LocaleGetCode());
+            ChatManager.instance.PossessChatScheduleStart(10);
+            ChatManager.instance.PossessChat(ChatManager.PossessChatID.LovePotion,
+                phrase, 1f, SpawnCalloutColor, 0f, sendInTaxmanChat: false, 0, null, localeCode);
+            ChatManager.instance.PossessChatScheduleEnd();
+        }
+        catch (Exception error)
+        {
+            Log.LogWarning("Could not play native R.E.P.O. spawn callout: " + error.Message);
+        }
+    }
+
     private void RememberRequest(string requestId)
     {
         if (!_processedRequests.Add(requestId)) return;
@@ -439,6 +586,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        PhotonNetwork.RemoveCallbackTarget(this);
         _pairingCancellation?.Cancel();
         _pairingCancellation?.Dispose();
         _pairingClient?.Dispose();
